@@ -4,7 +4,8 @@
   functions = "netlify/functions"
   publish = "."
 
-
-[functions]
+[[functions]]
+  name = "organizer"
+  path = "functions/organizer.ts"
   command = "npm test"
   test = true
