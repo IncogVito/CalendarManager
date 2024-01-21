@@ -1,20 +1,6 @@
-interface CurrentCalendarElement {
-    eventId: number;
-    startingDateTime: Date;
-    endingDateTime: Date;
-    location: string;
-    changeable: boolean;
-    availableAlongside: number[];
-  }
-  
-  interface NewCalendarElement {
-    name: string;
-    index: number;
-    durationTime: number;
-    location: string;
-  }
-  
-  interface DayConfig {
+import { CurrentCalendarElement, NewCalendarElement } from "../model/calendar.model";
+
+interface DayConfig {
     startTime: Date;
     endTime: Date;
   }
