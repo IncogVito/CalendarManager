@@ -3,3 +3,9 @@
   command = "yarn"
   functions = "netlify/functions"
   publish = "."
+
+
+[[functions]]
+  path = "functions/organizer.ts"
+  command = "npm test"
+  test = true
