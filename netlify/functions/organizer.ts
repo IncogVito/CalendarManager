@@ -1,90 +1,119 @@
-import { CurrentCalendarElement, NewCalendarElement } from "../model/calendar.model";
-
-interface DayConfig {
-    startTime: Date;
-    endTime: Date;
-  }
-  
-  interface GeneralConstraints {
-    minStartDate: Date;
-    maxEndDate: Date;
-    breakBetweenElements: number;
-    changingAllowed: boolean;
-  }
-  
-  interface EventsToBeUpdated {
-    eventId: number;
-    newStartingTime: Date;
-    newEndingTime: Date;
-  }
-  
-  interface NewEventsToBeAdded {
-    name: string;
-    location: string;
-    startingTime: Date;
-    endingTime: Date;
-  }
+import {
+    CurrentCalendarElement,
+    DayPreferencesConfig, EventsToBeUpdated,
+    GeneralConstraints,
+    NewCalendarElement,
+    NewEventsToBeAdded, TimeSlot
+} from "../model/calendar.model";
+import {DateTime, Duration} from "luxon";
+import {PlannedDay} from "../model/calendar-algorithm.model";
+import {findAvailableTimeSlots, groupEventsByDays} from "../helper/organizer.helper";
+import {CalendarRequest} from "../model/calendar-request.model";
 
 
-  export function doTest(): Number {
-    return 2;
-  }
-  
-  function organizeCalendar(
+export function organizeCalendar(
     currentCalendar: CurrentCalendarElement[],
     newCalendarElements: NewCalendarElement[],
-    dayConfig: DayConfig,
+    dayPreferencesConfig: DayPreferencesConfig,
     generalConstraints: GeneralConstraints
-  ): { eventsToBeUpdated: EventsToBeUpdated[], newEventsToBeAdded: NewEventsToBeAdded[] } {
-    // Your implementation here
-  
-    // Placeholder
+): { eventsToBeUpdated: EventsToBeUpdated[], newEventsToBeAdded: NewEventsToBeAdded[] } {
     const eventsToBeUpdated: EventsToBeUpdated[] = [];
     const newEventsToBeAdded: NewEventsToBeAdded[] = [];
-  
-    // Your complex algorithm logic here
-  
-    return { eventsToBeUpdated, newEventsToBeAdded };
-  }
-  
-  // Example usage
-  const currentCalendar: CurrentCalendarElement[] = [
-    // Existing calendar events
-  ];
-  
-  const newCalendarElements: NewCalendarElement[] = [
-    // New calendar elements to be added
-  ];
-  
-  const dayConfig: DayConfig = {
-    startTime: new Date("2024-01-21T08:00:00"),
-    endTime: new Date("2024-01-21T17:00:00"),
-  };
-  
-  const generalConstraints: GeneralConstraints = {
-    minStartDate: new Date("2024-01-21T08:00:00"),
-    maxEndDate: new Date("2024-01-21T17:00:00"),
+
+    const breakBetweenEventsMinutes = generalConstraints.breakBetweenElements;
+    const plannedDays: PlannedDay[] = groupEventsByDays(currentCalendar, generalConstraints.minStartDate, generalConstraints.maxEndDate);
+
+    const calendarElementsLeftToBeInserted = [...newCalendarElements];
+    plannedDays.forEach((plannedDay) => {
+        const availableTimeSlots = findAvailableTimeSlots(plannedDay, dayPreferencesConfig);
+        let elementsPlaced = [];
+
+        calendarElementsLeftToBeInserted.forEach((newElement) => {
+            const availableSlot = findAvailableSlotForElement(newElement, availableTimeSlots, breakBetweenEventsMinutes);
+            const eventDuration = Duration.fromMillis((breakBetweenEventsMinutes) * 60 * 1000);
+
+            if (availableSlot) {
+                const newEvent: NewEventsToBeAdded = {
+                    name: newElement.name,
+                    location: newElement.location,
+                    startingTime: availableSlot,
+                    endingTime: availableSlot.plus(eventDuration),
+                };
+                newEventsToBeAdded.push(newEvent);
+                elementsPlaced.push(newElement);
+            }
+        });
+    });
+
+    return {eventsToBeUpdated, newEventsToBeAdded};
+}
+
+function findAvailableSlotForElement(
+    newElement: NewCalendarElement,
+    availableTimeSlots: TimeSlot[],
+    breakBetweenEventsMinutes: number
+): DateTime {
+
+    for (let i = 0; i < availableTimeSlots.length; i++) {
+        const breakDuration = Duration.fromMillis((breakBetweenEventsMinutes) * 60 * 1000);
+        const potentialSlotStart = availableTimeSlots[i].start.plus(breakDuration);
+        const potentialSlotEnd = potentialSlotStart.plus(Duration.fromMillis((newElement.durationTime + breakBetweenEventsMinutes) * 60 * 1000));
+
+        if (isSlotWithinBounds(potentialSlotEnd, availableTimeSlots[i]) && isSlotAvailable(potentialSlotStart, potentialSlotEnd, newElement)) {
+            return potentialSlotStart;
+        }
+    }
+
+    return null;
+}
+
+
+function isSlotWithinBounds(slotEnd: DateTime, availableTimeSlots: TimeSlot): boolean {
+    return slotEnd.toMillis() < availableTimeSlots.end.toMillis();
+}
+
+function isSlotAvailable(slotStart: DateTime, slotEnd: DateTime, newElement: NewCalendarElement): boolean {
+    return true;
+}
+
+const dayConfig: DayPreferencesConfig = {
+    startTime: DateTime.fromISO("2024-01-21T08:00:00"),
+    endTime: DateTime.fromISO("2024-01-21T17:00:00"),
+};
+
+const generalConstraints: GeneralConstraints = {
+    minStartDate: DateTime.fromISO("2024-01-21T08:00:00"),
+    maxEndDate: DateTime.fromISO("2024-01-21T17:00:00"),
     breakBetweenElements: 15, // in minutes
     changingAllowed: true,
-  };
-  
-  const result = organizeCalendar(currentCalendar, newCalendarElements, dayConfig, generalConstraints);
-  
-  console.log(result);
+};
 
-  export const handler = async (event: any, context: any) => {
+
+export const handler = async (event: any, context: any) => {
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
             body: 'Method Not Allowed',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
         };
     }
 
+    if (!event.body) {
+        throw new Error('Request body is missing.');
+    }
+
+    const requestBody: CalendarRequest = JSON.parse(event.body);
+
+    const organizationResult = organizeCalendar(
+        requestBody.currentCalendar,
+        requestBody.newCalendarElements,
+        requestBody.dayPreferencesConfig,
+        requestBody.generalConstraints
+    );
+
     return {
         statusCode: 200,
-        body: JSON.stringify({ message: "Success!", data: "WORKS" }),
-        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(organizationResult),
+        headers: {'Content-Type': 'application/json'},
     };
 };
-
