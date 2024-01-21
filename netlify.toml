@@ -1,0 +1,5 @@
+# example netlify.toml
+[build]
+  command = "yarn"
+  functions = "netlify/functions"
+  publish = "."
