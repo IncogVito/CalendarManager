@@ -9,6 +9,7 @@ import {DateTime, Duration} from "luxon";
 import {PlannedDay} from "../model/calendar-algorithm.model";
 import {findAvailableTimeSlots, groupEventsByDays} from "../helper/organizer.helper";
 import {CalendarRequest} from "../model/calendar-request.model";
+import {parseRequest} from "../helper/organizer.parser";
 
 
 export function organizeCalendar(
@@ -101,14 +102,14 @@ export const handler = async (event: any, context: any) => {
     if (!event.body) {
         throw new Error('Request body is missing.');
     }
-
     const requestBody: CalendarRequest = JSON.parse(event.body);
+    const parsedInput = parseRequest(requestBody);
 
     const organizationResult = organizeCalendar(
-        requestBody.currentCalendar,
-        requestBody.newCalendarElements,
-        requestBody.dayPreferencesConfig,
-        requestBody.generalConstraints
+        parsedInput.currentCalendar,
+        parsedInput.newCalendarElements,
+        parsedInput.dayPreferencesConfig,
+        parsedInput.generalConstraints
     );
 
     return {

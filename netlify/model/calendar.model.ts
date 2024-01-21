@@ -1,6 +1,11 @@
 import {DateTime} from "luxon";
 import {Valid} from "luxon/src/_util";
 import {DurationOptions} from "luxon/src/duration";
+import {
+    CurrentCalendarElementRequest,
+    DayPreferencesConfigRequest, GeneralConstraintsRequest,
+    NewCalendarElementRequest
+} from "./calendar-request.model";
 
 export class TimeSlot {
     start: DateTime;
@@ -14,6 +19,13 @@ export class TimeSlot {
     static create(start: DateTime, end: DateTime): TimeSlot {
         return new TimeSlot(start, end);
     }
+}
+
+export interface CalendarInput {
+    currentCalendar: CurrentCalendarElement[],
+    newCalendarElements: NewCalendarElement[],
+    dayPreferencesConfig: DayPreferencesConfig,
+    generalConstraints: GeneralConstraints
 }
 
 export interface CurrentCalendarElement {
