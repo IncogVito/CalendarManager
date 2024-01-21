@@ -25,8 +25,8 @@ function parseGeneralConstraints(generalConstraints: GeneralConstraintsRequest):
     return {
         breakBetweenElements: generalConstraints.breakBetweenElements,
         changingAllowed: generalConstraints.changingAllowed,
-        maxEndDate: DateTime.fromISO(generalConstraints.minStartDate),
-        minStartDate: DateTime.fromISO(generalConstraints.maxEndDate)
+        maxEndDate: DateTime.fromISO(generalConstraints.maxEndDate),
+        minStartDate: DateTime.fromISO(generalConstraints.minStartDate)
     };
 }
 

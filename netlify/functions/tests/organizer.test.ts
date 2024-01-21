@@ -6,7 +6,7 @@ import {
 } from "../../model/calendar.model";
 import {DateTime} from "luxon";
 import {findAvailableTimeSlots, groupEventsByDays} from "../../helper/organizer.helper";
-import {organizeCalendar} from "../organizer";
+import {handler, organizeCalendar} from "../organizer";
 
 test('Should correctly grouped days', () => {
     const calendarElements: CurrentCalendarElement[] = [
@@ -155,4 +155,45 @@ test('Should find some slots of new calendar', () => {
     const result = organizeCalendar(currentCalendar, newCalendarElements, dayPreferencesConfig, generalConstraints);
     expect(result.newEventsToBeAdded.length).toEqual(1);
 });
+
+
+
+
+test('Should test post request', () => {
+    const bodyReq = `{
+  "currentCalendar": [
+    {
+      "eventId": 1,
+      "startingDateTime": "2024-01-21T08:00:00",
+      "endingDateTime": "2024-01-21T12:00:00",
+      "location": "Office A",
+      "changeable": true,
+      "availableAlongside": false
+    }
+  ],
+  "newCalendarElements": [
+    {
+      "name": "Meeting",
+      "index": 1,
+      "durationTime": 2,
+      "location": "Conference Room B"
+    }
+  ],
+  "dayPreferencesConfig": {
+    "startTime": "2024-01-21T08:00:00",
+    "endTime": "2024-01-21T17:00:00"
+  },
+  "generalConstraints": {
+    "minStartDate": "2024-01-21T08:00:00",
+    "maxEndDate": "2024-01-21T17:00:00",
+    "breakBetweenElements": 1,
+    "changingAllowed": true
+  }
+}`;
+
+    const result = handler({httpMethod: "POST", body: bodyReq}, undefined);
+});
+
+
+
 
