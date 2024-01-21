@@ -1,11 +1,6 @@
 # example netlify.toml
 [build]
-  command = "yarn"
+  command = "yarn  && npm test"
   functions = "netlify/functions"
   publish = "."
 
-[[functions]]
-  name = "organizer"
-  path = "functions/organizer.ts"
-  command = "npm test"
-  test = true
