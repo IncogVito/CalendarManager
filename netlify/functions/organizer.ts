@@ -1,4 +1,11 @@
 export const handler = async (event: any, context: any) => {
+    if (event.httpMethod === 'GET') {
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ message: "First!", data: "Response" }),
+            headers: { 'Content-Type': 'application/json' },
+        };
+    }
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
