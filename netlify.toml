@@ -5,7 +5,7 @@
   publish = "."
 
 
-[[functions]]
+[functions]
   path = "functions/organizer.ts"
   command = "npm test"
   test = true
