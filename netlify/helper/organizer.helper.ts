@@ -1,6 +1,7 @@
-import {CurrentCalendarElement, DayPreferencesConfig, TimeSlot} from "../model/calendar.model";
+import {CurrentCalendarElement, DayPreferencesConfig, NewCalendarElement, TimeSlot} from "../model/calendar.model";
 import {DateTime} from "luxon";
 import {PlannedDay} from "../model/calendar-algorithm.model";
+import {combineDateAndTime} from "./time.util";
 
 export function groupEventsByDays(
     calendarElements: CurrentCalendarElement[],
@@ -33,13 +34,26 @@ export function groupEventsByDays(
 }
 
 export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesConfig: DayPreferencesConfig): TimeSlot[] {
-    const orderedEvents = plannedDay.currentElements
+    const mappedExistingEvents = plannedDay.currentElements.map(e => {
+        return {
+            element: undefined,
+            startingDateTime: e.startingDateTime,
+            endingDateTime: e.endingDateTime
+        }
+    })
+
+
+    const orderedEvents = [...mappedExistingEvents, ...plannedDay.plannedElements]
         .sort((a1, a2) =>
             a1.startingDateTime.toMillis() - a2.startingDateTime.toMillis()
         );
 
     if (orderedEvents.length === 0) {
-        return [TimeSlot.create(dayPreferencesConfig.startTime, dayPreferencesConfig.endTime)]
+        return [TimeSlot.create(
+            combineDateAndTime(plannedDay.date, dayPreferencesConfig.startTime),
+            combineDateAndTime(plannedDay.date, dayPreferencesConfig.endTime)
+        )
+        ]
     }
     const timeSlots: TimeSlot[] = [];
     let lastEndingTime = dayPreferencesConfig.startTime;

@@ -65,6 +65,6 @@ export interface EventsToBeUpdated {
 export interface NewEventsToBeAdded {
     name: string;
     location: string;
-    startingTime: DateTime;
-    endingTime: DateTime;
+    startingDateTime: DateTime;
+    endingDateTime: DateTime;
 }

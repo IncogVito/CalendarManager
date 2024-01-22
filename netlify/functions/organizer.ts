@@ -10,6 +10,7 @@ import {PlannedDay} from "../model/calendar-algorithm.model";
 import {findAvailableTimeSlots, groupEventsByDays} from "../helper/organizer.helper";
 import {CalendarRequest} from "../model/calendar-request.model";
 import {parseRequest} from "../helper/organizer.parser";
+import {SimpleIterator} from "../model/math-structure.model";
 
 
 export function organizeCalendar(
@@ -25,26 +26,33 @@ export function organizeCalendar(
     const plannedDays: PlannedDay[] = groupEventsByDays(currentCalendar, generalConstraints.minStartDate, generalConstraints.maxEndDate);
 
     const calendarElementsLeftToBeInserted = [...newCalendarElements];
-    plannedDays.forEach((plannedDay) => {
+
+    const daysIterator: SimpleIterator<DateTime> = new SimpleIterator<DateTime>(plannedDays.map(e => e.date));
+    const dayToPlannedDay: Map<DateTime, PlannedDay> = new Map<DateTime, PlannedDay>([]);
+    plannedDays.forEach(singlePlannedDay => dayToPlannedDay.set(singlePlannedDay.date, singlePlannedDay));
+
+    for (const newElement of calendarElementsLeftToBeInserted) {
+        if (!daysIterator.hasNext()) {
+            daysIterator.reset();
+        }
+        daysIterator.next();
+        const plannedDay: PlannedDay = dayToPlannedDay.get(daysIterator.getValue());
+
         const availableTimeSlots = findAvailableTimeSlots(plannedDay, dayPreferencesConfig);
-        let elementsPlaced = [];
+        const availableSlot = findAvailableSlotForElement(newElement, availableTimeSlots, breakBetweenEventsMinutes);
+        const eventDuration = Duration.fromMillis(newElement.durationTime * 60 * 1000);
 
-        calendarElementsLeftToBeInserted.forEach((newElement) => {
-            const availableSlot = findAvailableSlotForElement(newElement, availableTimeSlots, breakBetweenEventsMinutes);
-            const eventDuration = Duration.fromMillis((breakBetweenEventsMinutes) * 60 * 1000);
-
-            if (availableSlot) {
-                const newEvent: NewEventsToBeAdded = {
-                    name: newElement.name,
-                    location: newElement.location,
-                    startingTime: availableSlot,
-                    endingTime: availableSlot.plus(eventDuration),
-                };
-                newEventsToBeAdded.push(newEvent);
-                elementsPlaced.push(newElement);
-            }
-        });
-    });
+        if (availableSlot) {
+            const newEvent: NewEventsToBeAdded = {
+                name: newElement.name,
+                location: newElement.location,
+                startingDateTime: availableSlot,
+                endingDateTime: availableSlot.plus(eventDuration),
+            };
+            newEventsToBeAdded.push(newEvent);
+            plannedDay.plannedElements.push(newEvent);
+        }
+    }
 
     return {eventsToBeUpdated, newEventsToBeAdded};
 }

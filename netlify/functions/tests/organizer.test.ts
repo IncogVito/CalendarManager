@@ -4,7 +4,7 @@ import {
     GeneralConstraints,
     NewCalendarElement
 } from "../../model/calendar.model";
-import {DateTime} from "luxon";
+import {DateTime, Duration} from "luxon";
 import {findAvailableTimeSlots, groupEventsByDays} from "../../helper/organizer.helper";
 import {handler, organizeCalendar} from "../organizer";
 
@@ -131,11 +131,12 @@ test('Should find some slots of new calendar', () => {
         }
     ];
 
+    const eventDuration = 55;
     const newCalendarElements: NewCalendarElement[] = [
         {
             name: 'Meeting',
             index: 1,
-            durationTime: 55,
+            durationTime: eventDuration,
             location: 'Conference Room B',
         }
     ];
@@ -154,9 +155,137 @@ test('Should find some slots of new calendar', () => {
 
     const result = organizeCalendar(currentCalendar, newCalendarElements, dayPreferencesConfig, generalConstraints);
     expect(result.newEventsToBeAdded.length).toEqual(1);
+
+    const newEventStartingTime = result.newEventsToBeAdded[0].startingDateTime;
+    const newEventEndingTime = result.newEventsToBeAdded[0].endingDateTime;
+    const realDuration = Duration.fromMillis(newEventEndingTime.toMillis() - newEventStartingTime.toMillis());
+
+    expect(realDuration).toEqual(Duration.fromMillis(eventDuration * 60 * 1000));
 });
 
+test('Should find slots for 2 new items of new calendar', () => {
+    const currentCalendar: CurrentCalendarElement[] = [
+        {
+            eventId: 1,
+            startingDateTime: DateTime.fromISO('2024-01-21T10:00:00'),
+            endingDateTime: DateTime.fromISO('2024-01-21T12:00:00'),
+            location: 'Office A',
+            changeable: true,
+            availableAlongside: false
+        }
+    ];
 
+    const eventDuration = 60;
+    const newCalendarElements: NewCalendarElement[] = [
+        {
+            name: 'Meeting',
+            index: 1,
+            durationTime: eventDuration,
+            location: 'Conference Room B',
+        },
+        {
+            name: 'Meeting 2',
+            index: 2,
+            durationTime: eventDuration,
+            location: 'Conference Room B',
+        },
+        {
+            name: 'Meeting 3',
+            index: 3,
+            durationTime: eventDuration,
+            location: 'Conference Room B',
+        }
+    ];
+
+    const dayPreferencesConfig: DayPreferencesConfig = {
+        startTime: DateTime.fromISO('2024-01-21T08:00:00'),
+        endTime: DateTime.fromISO('2024-01-21T21:00:00'),
+    };
+
+    const generalConstraints: GeneralConstraints = {
+        minStartDate: DateTime.fromISO('2024-01-21T00:00:00'),
+        maxEndDate: DateTime.fromISO('2024-01-21T23:59:00'),
+        breakBetweenElements: 10,
+        changingAllowed: true,
+    };
+
+    const result = organizeCalendar(currentCalendar, newCalendarElements, dayPreferencesConfig, generalConstraints);
+    expect(result.newEventsToBeAdded.length).toEqual(3);
+
+    let lastStartingTime = null;
+    let lastEndingTime = null;
+    for (const singleAddedItem of result.newEventsToBeAdded) {
+        const newEventStartingTime = singleAddedItem.startingDateTime;
+        const newEventEndingTime = singleAddedItem.endingDateTime;
+        const realDuration = Duration.fromMillis(newEventEndingTime.toMillis() - newEventStartingTime.toMillis());
+        expect(realDuration).toEqual(Duration.fromMillis(eventDuration * 60 * 1000));
+
+        expect(lastStartingTime).not.toEqual(singleAddedItem.startingDateTime)
+        expect(lastEndingTime).not.toEqual(singleAddedItem.endingDateTime)
+
+        lastStartingTime = singleAddedItem.startingDateTime;
+        lastEndingTime = singleAddedItem.endingDateTime;
+    }
+});
+
+test('Should place two events over two days', () => {
+    const currentCalendar: CurrentCalendarElement[] = [
+        {
+            eventId: 1,
+            startingDateTime: DateTime.fromISO('2024-01-21T10:00:00'),
+            endingDateTime: DateTime.fromISO('2024-01-21T12:00:00'),
+            location: 'Office A',
+            changeable: true,
+            availableAlongside: false
+        },
+        {
+            eventId: 1,
+            startingDateTime: DateTime.fromISO('2024-01-22T08:00:00'),
+            endingDateTime: DateTime.fromISO('2024-01-22T12:00:00'),
+            location: 'Office A',
+            changeable: true,
+            availableAlongside: false
+        }
+    ];
+
+    const eventDuration = 60;
+    const newCalendarElements: NewCalendarElement[] = [
+        {
+            name: 'Meeting',
+            index: 1,
+            durationTime: eventDuration,
+            location: 'Conference Room B',
+        },
+        {
+            name: 'Meeting 2',
+            index: 2,
+            durationTime: eventDuration,
+            location: 'Conference Room B',
+        }
+    ];
+
+    const dayPreferencesConfig: DayPreferencesConfig = {
+        startTime: DateTime.fromISO('2024-01-21T08:00:00'),
+        endTime: DateTime.fromISO('2024-01-21T21:00:00'),
+    };
+
+    const generalConstraints: GeneralConstraints = {
+        minStartDate: DateTime.fromISO('2024-01-21T00:00:00'),
+        maxEndDate: DateTime.fromISO('2024-01-22T23:59:00'),
+        breakBetweenElements: 10,
+        changingAllowed: true,
+    };
+
+    const result = organizeCalendar(currentCalendar, newCalendarElements, dayPreferencesConfig, generalConstraints);
+    expect(result.newEventsToBeAdded.length).toEqual(2);
+
+    let lastDate = null;
+    for (const singleAddedItem of result.newEventsToBeAdded) {
+        const newEventStartingTime = singleAddedItem.startingDateTime.toISODate();
+        expect(lastDate).not.toEqual(newEventStartingTime)
+        lastDate = singleAddedItem.startingDateTime.toISODate();
+    }
+});
 
 
 test('Should test post request', () => {

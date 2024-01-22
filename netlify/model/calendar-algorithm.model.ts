@@ -1,4 +1,4 @@
-import {CurrentCalendarElement, NewCalendarElement} from "./calendar.model";
+import {CurrentCalendarElement, NewCalendarElement, NewEventsToBeAdded} from "./calendar.model";
 import {DateTime} from "luxon";
 
 
@@ -11,5 +11,5 @@ export interface PlannedEvent {
 export interface PlannedDay {
     date: DateTime;
     currentElements: CurrentCalendarElement[];
-    plannedElements: PlannedEvent[]
+    plannedElements: NewEventsToBeAdded[]
 }
