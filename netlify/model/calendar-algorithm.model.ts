@@ -1,15 +1,18 @@
-import {CurrentCalendarElement, NewCalendarElement, NewEventsToBeAdded} from "./calendar.model";
-import {DateTime} from "luxon";
+import {ExistingEvent, CreatedEvent, UpdatedEvent} from "./calendar.model";
+import {LocalDate, LocalDateTime} from "@js-joda/core";
 
-
-export interface PlannedEvent {
-    element: NewCalendarElement,
-    startingDateTime: DateTime;
-    endingDateTime: DateTime;
-}
 
 export interface PlannedDay {
-    date: DateTime;
-    currentElements: CurrentCalendarElement[];
-    plannedElements: NewEventsToBeAdded[]
+    date: LocalDate;
+    currentElements: ExistingEvent[];
+    plannedNewElements: CreatedEvent[];
+    plannedUpdatedElements: UpdatedEvent[];
+}
+
+
+
+export class PlanningResult {
+    success: boolean;
+    plannedDays?: PlannedDay[];
+    score?: number;
 }

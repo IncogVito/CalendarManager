@@ -1,72 +1,151 @@
 import {
-    CurrentCalendarElement,
-    DayPreferencesConfig, EventsToBeUpdated,
+    ExistingEvent,
+    DayPreferencesConfig, UpdatedEvent,
     GeneralConstraints,
     NewCalendarElement,
-    NewEventsToBeAdded, TimeSlot
+    CreatedEvent, TimeSlot
 } from "../model/calendar.model";
-import {DateTime, Duration} from "luxon";
-import {PlannedDay} from "../model/calendar-algorithm.model";
+import {PlannedDay, PlanningResult} from "../model/calendar-algorithm.model";
 import {findAvailableTimeSlots, groupEventsByDays} from "../helper/organizer.helper";
 import {CalendarRequest} from "../model/calendar-request.model";
 import {parseRequest} from "../helper/organizer.parser";
-import {SimpleIterator} from "../model/math-structure.model";
+import {DateTimeFormatter, Duration, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {drop, first, isEmpty} from "lodash";
 
 
 export function organizeCalendar(
-    currentCalendar: CurrentCalendarElement[],
+    existingEvents: ExistingEvent[],
     newCalendarElements: NewCalendarElement[],
     dayPreferencesConfig: DayPreferencesConfig,
     generalConstraints: GeneralConstraints
-): { eventsToBeUpdated: EventsToBeUpdated[], newEventsToBeAdded: NewEventsToBeAdded[] } {
-    const eventsToBeUpdated: EventsToBeUpdated[] = [];
-    const newEventsToBeAdded: NewEventsToBeAdded[] = [];
+// ): { eventsToBeUpdated: UpdatedEvent[], newEventsToBeAdded: CreatedEvent[] } {
+): PlanningResult {
+    const eventsToBeUpdated: UpdatedEvent[] = [];
+    const newEventsToBeAdded: CreatedEvent[] = [];
+
 
     const breakBetweenEventsMinutes = generalConstraints.breakBetweenElements;
-    const plannedDays: PlannedDay[] = groupEventsByDays(currentCalendar, generalConstraints.minStartDate, generalConstraints.maxEndDate);
+    const plannedDays: PlannedDay[] = groupEventsByDays(existingEvents, generalConstraints.minStartDate, generalConstraints.maxEndDate);
 
     const calendarElementsLeftToBeInserted = [...newCalendarElements];
 
-    const daysIterator: SimpleIterator<DateTime> = new SimpleIterator<DateTime>(plannedDays.map(e => e.date));
-    const dayToPlannedDay: Map<DateTime, PlannedDay> = new Map<DateTime, PlannedDay>([]);
-    plannedDays.forEach(singlePlannedDay => dayToPlannedDay.set(singlePlannedDay.date, singlePlannedDay));
-
-    for (const newElement of calendarElementsLeftToBeInserted) {
-        if (!daysIterator.hasNext()) {
-            daysIterator.reset();
+     return  planDaysSequentially(
+        plannedDays,
+        calendarElementsLeftToBeInserted,
+        'place',
+        generalConstraints,
+        {
+            success: false,
+            plannedDays: []
         }
-        daysIterator.next();
-        const plannedDay: PlannedDay = dayToPlannedDay.get(daysIterator.getValue());
+    );
 
-        const availableTimeSlots = findAvailableTimeSlots(plannedDay, dayPreferencesConfig);
-        const availableSlot = findAvailableSlotForElement(newElement, availableTimeSlots, breakBetweenEventsMinutes);
-        const eventDuration = Duration.fromMillis(newElement.durationTime * 60 * 1000);
 
-        if (availableSlot) {
-            const newEvent: NewEventsToBeAdded = {
-                name: newElement.name,
-                location: newElement.location,
-                startingDateTime: availableSlot,
-                endingDateTime: availableSlot.plus(eventDuration),
-            };
-            newEventsToBeAdded.push(newEvent);
-            plannedDay.plannedElements.push(newEvent);
-        }
+    // const daysIterator: SimpleIterator<DateTime> = new SimpleIterator<DateTime>(plannedDays.map(e => e.date));
+    // const dayToPlannedDay: Map<DateTime, PlannedDay> = new Map<DateTime, PlannedDay>([]);
+    // plannedDays.forEach(singlePlannedDay => dayToPlannedDay.set(singlePlannedDay.date, singlePlannedDay));
+    //
+    // for (const newElement of calendarElementsLeftToBeInserted) {
+    //     if (!daysIterator.hasNext()) {
+    //         daysIterator.reset();
+    //     }
+    //     daysIterator.next();
+    //     const plannedDay: PlannedDay = dayToPlannedDay.get(daysIterator.getValue());
+    //
+    //     const availableTimeSlots = findAvailableTimeSlots(plannedDay, dayPreferencesConfig);
+    //     const availableSlot = findAvailableSlotForElement(newElement, availableTimeSlots, breakBetweenEventsMinutes);
+    //     const eventDuration = Duration.fromMillis(newElement.durationTime * 60 * 1000);
+    //
+    //     if (availableSlot) {
+    //         const newEvent: NewEventsToBeAdded = {
+    //             name: newElement.name,
+    //             location: newElement.location,
+    //             startingDateTime: availableSlot,
+    //             endingDateTime: availableSlot.plus(eventDuration),
+    //         };
+    //         newEventsToBeAdded.push(newEvent);
+    //         plannedDay.plannedElements.push(newEvent);
+    //     }
+    // }
+
+}
+
+
+function planDaysSequentially(plannedDaysLeft: PlannedDay[],
+                              calendarElementsLeftToBeInserted: NewCalendarElement[],
+                              actionType: "place" | "squeeze" | "move",
+                              generalConstraints: GeneralConstraints,
+                              planningResultSoFar: PlanningResult
+): PlanningResult {
+    if (isEmpty(calendarElementsLeftToBeInserted)) {
+        return {success: true, plannedDays: planningResultSoFar.plannedDays, score: planningResultSoFar.score};
+    }
+    if (isEmpty(plannedDaysLeft)) {
+        return {success: false};
+    }
+    const currentDay = first(plannedDaysLeft);
+    console.log(`Current day: ${currentDay.date.format(DateTimeFormatter.ISO_DATE)}`)
+
+    const nextPlannedDays = drop(plannedDaysLeft, 1);
+
+    const eventToBePlaced = first(calendarElementsLeftToBeInserted);
+    const restEvents = drop(calendarElementsLeftToBeInserted, 1);
+
+    const updatedPlannedDay: PlannedDay | undefined = placeWithinEmptySlots(currentDay, eventToBePlaced, generalConstraints);
+    console.log("Event placed?: " + !!updatedPlannedDay);
+
+    if (!updatedPlannedDay) {
+        return planDaysSequentially(nextPlannedDays, calendarElementsLeftToBeInserted, 'place', generalConstraints, planningResultSoFar);
     }
 
-    return {eventsToBeUpdated, newEventsToBeAdded};
+    const planningResult: PlanningResult = {
+        success: false,
+        plannedDays: [...planningResultSoFar.plannedDays, updatedPlannedDay]
+    }
+    const innerResult = planDaysSequentially(nextPlannedDays, restEvents, 'place', generalConstraints, planningResult);
+    if (!innerResult.success) {
+        console.log('Inner fail. Trying same day.')
+        const sameDayPlannedDays = [updatedPlannedDay, ...nextPlannedDays];
+        return planDaysSequentially(sameDayPlannedDays, restEvents, 'place', generalConstraints, planningResult);
+    }
+    return innerResult;
 }
+
+function placeWithinEmptySlots(currentDay: PlannedDay,
+                               eventToBePlaced: NewCalendarElement,
+                               generalConstraints: GeneralConstraints): PlannedDay | undefined {
+    const timeSlots: TimeSlot[] = findAvailableTimeSlots(currentDay,
+        {
+            startTime: generalConstraints.preferencesStartTime,
+            endTime: generalConstraints.preferencesEndTime
+        });
+
+    const slotStartTime = findAvailableSlotForElement(eventToBePlaced, timeSlots, generalConstraints.breakBetweenElements);
+
+    if (!slotStartTime) {
+        return undefined;
+    }
+
+    const createdEvent: CreatedEvent = {
+        name: eventToBePlaced.name,
+        location: eventToBePlaced.location,
+        startingDateTime: slotStartTime,
+        endingDateTime: slotStartTime.plusMinutes(eventToBePlaced.durationTime)
+    }
+
+    return {...currentDay, plannedNewElements: [...currentDay.plannedNewElements, createdEvent]}
+}
+
 
 function findAvailableSlotForElement(
     newElement: NewCalendarElement,
     availableTimeSlots: TimeSlot[],
     breakBetweenEventsMinutes: number
-): DateTime {
+): LocalDateTime {
 
     for (let i = 0; i < availableTimeSlots.length; i++) {
-        const breakDuration = Duration.fromMillis((breakBetweenEventsMinutes) * 60 * 1000);
-        const potentialSlotStart = availableTimeSlots[i].start.plus(breakDuration);
-        const potentialSlotEnd = potentialSlotStart.plus(Duration.fromMillis((newElement.durationTime + breakBetweenEventsMinutes) * 60 * 1000));
+        const potentialSlotStart = availableTimeSlots[i].start.plusMinutes(breakBetweenEventsMinutes)
+        const potentialSlotEnd = potentialSlotStart.plusMinutes(newElement.durationTime + breakBetweenEventsMinutes);
 
         if (isSlotWithinBounds(potentialSlotEnd, availableTimeSlots[i]) && isSlotAvailable(potentialSlotStart, potentialSlotEnd, newElement)) {
             return potentialSlotStart;
@@ -77,24 +156,26 @@ function findAvailableSlotForElement(
 }
 
 
-function isSlotWithinBounds(slotEnd: DateTime, availableTimeSlots: TimeSlot): boolean {
-    return slotEnd.toMillis() < availableTimeSlots.end.toMillis();
+function isSlotWithinBounds(slotEnd: LocalDateTime, availableTimeSlots: TimeSlot): boolean {
+    return slotEnd.compareTo(availableTimeSlots.end) <= 0;
 }
 
-function isSlotAvailable(slotStart: DateTime, slotEnd: DateTime, newElement: NewCalendarElement): boolean {
+function isSlotAvailable(slotStart: LocalDateTime, slotEnd: LocalDateTime, newElement: NewCalendarElement): boolean {
     return true;
 }
 
 const dayConfig: DayPreferencesConfig = {
-    startTime: DateTime.fromISO("2024-01-21T08:00:00"),
-    endTime: DateTime.fromISO("2024-01-21T17:00:00"),
+    startTime: LocalTime.parse("08:00:00"),
+    endTime: LocalTime.parse("17:00:00"),
 };
 
 const generalConstraints: GeneralConstraints = {
-    minStartDate: DateTime.fromISO("2024-01-21T08:00:00"),
-    maxEndDate: DateTime.fromISO("2024-01-21T17:00:00"),
+    minStartDate: LocalDate.parse("2024-01-21"),
+    maxEndDate: LocalDate.parse("2024-01-21"),
     breakBetweenElements: 15, // in minutes
     changingAllowed: true,
+    preferencesStartTime: LocalTime.parse("08:00:00"),
+    preferencesEndTime: LocalTime.parse("17:00:00"),
 };
 
 

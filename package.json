@@ -1,8 +1,12 @@
-{ "scripts": {
+{
+  "scripts": {
     "test": "jest"
   },
   "dependencies": {
+    "@js-joda/core": "^5.6.1",
+    "@types/lodash": "^4.14.202",
     "langchain": "^0.0.159",
+    "lodash": "^4.17.21",
     "luxon": "^3.4.4",
     "node-fetch": "3.3.1"
   },

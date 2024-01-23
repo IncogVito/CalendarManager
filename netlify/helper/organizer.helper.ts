@@ -1,23 +1,22 @@
-import {CurrentCalendarElement, DayPreferencesConfig, NewCalendarElement, TimeSlot} from "../model/calendar.model";
-import {DateTime} from "luxon";
+import {ExistingEvent, DayPreferencesConfig, TimeSlot} from "../model/calendar.model";
 import {PlannedDay} from "../model/calendar-algorithm.model";
-import {combineDateAndTime} from "./time.util";
+import {LocalDate, LocalDateTime} from "@js-joda/core";
 
 export function groupEventsByDays(
-    calendarElements: CurrentCalendarElement[],
-    minStartDate: DateTime,
-    maxEndDate: DateTime
+    calendarElements: ExistingEvent[],
+    minStartDate: LocalDate,
+    maxEndDate: LocalDate
 ): PlannedDay[] {
     const groupedDays: PlannedDay[] = [];
 
     let currentDate = minStartDate;
-    while (currentDate <= maxEndDate) {
-        const currentDayElements: CurrentCalendarElement[] = [];
+    while (currentDate.compareTo(maxEndDate) <= 0) {
+        const currentDayElements: ExistingEvent[] = [];
 
         for (const calendarElement of calendarElements) {
             if (
-                calendarElement.startingDateTime >= currentDate &&
-                calendarElement.endingDateTime <= currentDate
+                calendarElement.startingDateTime.toLocalDate().compareTo(currentDate) >= 0 &&
+                calendarElement.endingDateTime.toLocalDate().compareTo(currentDate) <= 0
             ) {
                 currentDayElements.push(calendarElement);
             }
@@ -26,9 +25,10 @@ export function groupEventsByDays(
         groupedDays.push({
             date: currentDate,
             currentElements: currentDayElements,
-            plannedElements: []
+            plannedNewElements: [],
+            plannedUpdatedElements: []
         });
-        currentDate = currentDate.plus({days: 1});
+        currentDate = currentDate.plusDays(1);
     }
     return groupedDays;
 }
@@ -43,30 +43,30 @@ export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesCon
     })
 
 
-    const orderedEvents = [...mappedExistingEvents, ...plannedDay.plannedElements]
+    const orderedEvents = [...mappedExistingEvents, ...plannedDay.plannedNewElements]
         .sort((a1, a2) =>
-            a1.startingDateTime.toMillis() - a2.startingDateTime.toMillis()
+            a1.startingDateTime.compareTo(a2.startingDateTime)
         );
 
     if (orderedEvents.length === 0) {
         return [TimeSlot.create(
-            combineDateAndTime(plannedDay.date, dayPreferencesConfig.startTime),
-            combineDateAndTime(plannedDay.date, dayPreferencesConfig.endTime)
+            LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime),
+            LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)
         )
         ]
     }
     const timeSlots: TimeSlot[] = [];
-    let lastEndingTime = dayPreferencesConfig.startTime;
+    let lastEndingTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime);
 
     for (const singleEvent of orderedEvents) {
-        if (lastEndingTime.toMillis() !== singleEvent.startingDateTime.toMillis()) {
+        if (lastEndingTime.compareTo(singleEvent.startingDateTime) !== 0) {
             timeSlots.push(TimeSlot.create(lastEndingTime, singleEvent.startingDateTime));
         }
         lastEndingTime = singleEvent.endingDateTime;
     }
 
-    if (lastEndingTime.toMillis() !== dayPreferencesConfig.endTime.toMillis()) {
-        timeSlots.push(TimeSlot.create(lastEndingTime, dayPreferencesConfig.endTime));
+    if (lastEndingTime.compareTo(LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)) !== 0) {
+        timeSlots.push(TimeSlot.create(lastEndingTime, LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)));
     }
     return timeSlots;
 }

@@ -1,37 +1,30 @@
-import {DateTime} from "luxon";
-import {Valid} from "luxon/src/_util";
-import {DurationOptions} from "luxon/src/duration";
-import {
-    CurrentCalendarElementRequest,
-    DayPreferencesConfigRequest, GeneralConstraintsRequest,
-    NewCalendarElementRequest
-} from "./calendar-request.model";
+import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
 
 export class TimeSlot {
-    start: DateTime;
-    end: DateTime;
+    start: LocalDateTime;
+    end: LocalDateTime;
 
-    private constructor(start: DateTime, end: DateTime) {
+    private constructor(start: LocalDateTime, end: LocalDateTime) {
         this.start = start;
         this.end = end;
     }
 
-    static create(start: DateTime, end: DateTime): TimeSlot {
+    static create(start: LocalDateTime, end: LocalDateTime): TimeSlot {
         return new TimeSlot(start, end);
     }
 }
 
 export interface CalendarInput {
-    currentCalendar: CurrentCalendarElement[],
+    currentCalendar: ExistingEvent[],
     newCalendarElements: NewCalendarElement[],
     dayPreferencesConfig: DayPreferencesConfig,
     generalConstraints: GeneralConstraints
 }
 
-export interface CurrentCalendarElement {
+export interface ExistingEvent {
     eventId: number;
-    startingDateTime: DateTime;
-    endingDateTime: DateTime;
+    startingDateTime: LocalDateTime;
+    endingDateTime: LocalDateTime;
     location: string;
     changeable: boolean;
     availableAlongside: boolean;
@@ -45,26 +38,28 @@ export interface NewCalendarElement {
 }
 
 export interface DayPreferencesConfig {
-    startTime: DateTime;
-    endTime: DateTime;
+    startTime: LocalTime;
+    endTime: LocalTime;
 }
 
 export interface GeneralConstraints {
-    minStartDate: DateTime;
-    maxEndDate: DateTime;
+    minStartDate: LocalDate;
+    maxEndDate: LocalDate;
     breakBetweenElements: number;
     changingAllowed: boolean;
+    preferencesStartTime: LocalTime;
+    preferencesEndTime: LocalTime;
 }
 
-export interface EventsToBeUpdated {
+export interface UpdatedEvent {
     eventId: number;
-    newStartingTime: DateTime;
-    newEndingTime: DateTime;
+    newStartingTime: LocalDateTime;
+    newEndingTime: LocalDateTime;
 }
 
-export interface NewEventsToBeAdded {
+export interface CreatedEvent {
     name: string;
     location: string;
-    startingDateTime: DateTime;
-    endingDateTime: DateTime;
+    startingDateTime: LocalDateTime;
+    endingDateTime: LocalDateTime;
 }

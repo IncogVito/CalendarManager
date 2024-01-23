@@ -31,4 +31,6 @@ export interface GeneralConstraintsRequest {
     maxEndDate: string;
     breakBetweenElements: number;
     changingAllowed: boolean;
+    preferencesStartTime: string;
+    preferencesEndTime: string;
 }
