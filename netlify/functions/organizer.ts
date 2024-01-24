@@ -9,27 +9,20 @@ import {PlannedDay, PlanningResult} from "../model/calendar-algorithm.model";
 import {findAvailableTimeSlots, groupEventsByDays} from "../helper/organizer.helper";
 import {CalendarRequest} from "../model/calendar-request.model";
 import {parseRequest} from "../helper/organizer.parser";
-import {DateTimeFormatter, Duration, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {DateTimeFormatter, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
 import {drop, first, isEmpty} from "lodash";
 
 
 export function organizeCalendar(
     existingEvents: ExistingEvent[],
     newCalendarElements: NewCalendarElement[],
-    dayPreferencesConfig: DayPreferencesConfig,
     generalConstraints: GeneralConstraints
-// ): { eventsToBeUpdated: UpdatedEvent[], newEventsToBeAdded: CreatedEvent[] } {
-): PlanningResult {
-    const eventsToBeUpdated: UpdatedEvent[] = [];
-    const newEventsToBeAdded: CreatedEvent[] = [];
+): { updatedEvents: UpdatedEvent[], createdEvents: CreatedEvent[], success: boolean } {
 
-
-    const breakBetweenEventsMinutes = generalConstraints.breakBetweenElements;
     const plannedDays: PlannedDay[] = groupEventsByDays(existingEvents, generalConstraints.minStartDate, generalConstraints.maxEndDate);
-
     const calendarElementsLeftToBeInserted = [...newCalendarElements];
 
-     return  planDaysSequentially(
+    const planningResult: PlanningResult = planDaysSequentially(
         plannedDays,
         calendarElementsLeftToBeInserted,
         'place',
@@ -40,34 +33,11 @@ export function organizeCalendar(
         }
     );
 
-
-    // const daysIterator: SimpleIterator<DateTime> = new SimpleIterator<DateTime>(plannedDays.map(e => e.date));
-    // const dayToPlannedDay: Map<DateTime, PlannedDay> = new Map<DateTime, PlannedDay>([]);
-    // plannedDays.forEach(singlePlannedDay => dayToPlannedDay.set(singlePlannedDay.date, singlePlannedDay));
-    //
-    // for (const newElement of calendarElementsLeftToBeInserted) {
-    //     if (!daysIterator.hasNext()) {
-    //         daysIterator.reset();
-    //     }
-    //     daysIterator.next();
-    //     const plannedDay: PlannedDay = dayToPlannedDay.get(daysIterator.getValue());
-    //
-    //     const availableTimeSlots = findAvailableTimeSlots(plannedDay, dayPreferencesConfig);
-    //     const availableSlot = findAvailableSlotForElement(newElement, availableTimeSlots, breakBetweenEventsMinutes);
-    //     const eventDuration = Duration.fromMillis(newElement.durationTime * 60 * 1000);
-    //
-    //     if (availableSlot) {
-    //         const newEvent: NewEventsToBeAdded = {
-    //             name: newElement.name,
-    //             location: newElement.location,
-    //             startingDateTime: availableSlot,
-    //             endingDateTime: availableSlot.plus(eventDuration),
-    //         };
-    //         newEventsToBeAdded.push(newEvent);
-    //         plannedDay.plannedElements.push(newEvent);
-    //     }
-    // }
-
+    return {
+        updatedEvents: [],
+        createdEvents: planningResult.plannedDays ? planningResult.plannedDays.flatMap(elem => elem.plannedNewElements) : [],
+        success: planningResult.success
+    }
 }
 
 
@@ -197,7 +167,6 @@ export const handler = async (event: any, context: any) => {
     const organizationResult = organizeCalendar(
         parsedInput.currentCalendar,
         parsedInput.newCalendarElements,
-        parsedInput.dayPreferencesConfig,
         parsedInput.generalConstraints
     );
 

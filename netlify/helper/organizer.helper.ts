@@ -34,6 +34,9 @@ export function groupEventsByDays(
 }
 
 export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesConfig: DayPreferencesConfig): TimeSlot[] {
+    const prefStartTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime);
+    const prefEndTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime);
+
     const mappedExistingEvents = plannedDay.currentElements.map(e => {
         return {
             element: undefined,
@@ -41,7 +44,6 @@ export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesCon
             endingDateTime: e.endingDateTime
         }
     })
-
 
     const orderedEvents = [...mappedExistingEvents, ...plannedDay.plannedNewElements]
         .sort((a1, a2) =>
@@ -59,13 +61,22 @@ export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesCon
     let lastEndingTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime);
 
     for (const singleEvent of orderedEvents) {
-        if (lastEndingTime.compareTo(singleEvent.startingDateTime) !== 0) {
-            timeSlots.push(TimeSlot.create(lastEndingTime, singleEvent.startingDateTime));
+        if (lastEndingTime.compareTo(singleEvent.startingDateTime) < 0
+            && lastEndingTime.compareTo(prefStartTime) >= 0
+            && lastEndingTime.compareTo(prefEndTime) < 0
+        ) {
+            const minEnding = prefEndTime.compareTo(singleEvent.startingDateTime) < 0 ? prefEndTime : singleEvent.startingDateTime;
+            timeSlots.push(TimeSlot.create(lastEndingTime, minEnding));
         }
-        lastEndingTime = singleEvent.endingDateTime;
+
+        if (lastEndingTime.compareTo(singleEvent.endingDateTime) < 0) {
+            lastEndingTime = singleEvent.endingDateTime;
+        }
     }
 
-    if (lastEndingTime.compareTo(LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)) !== 0) {
+    if (lastEndingTime.compareTo(LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)) < 0
+        && lastEndingTime.compareTo(prefStartTime) >= 0
+    ) {
         timeSlots.push(TimeSlot.create(lastEndingTime, LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)));
     }
     return timeSlots;
