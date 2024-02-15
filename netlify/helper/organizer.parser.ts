@@ -9,7 +9,7 @@ import {
     DayPreferencesConfig,
     GeneralConstraints
 } from "../model/calendar.model";
-import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {DateTimeFormatter, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
 import {TodoistEvent} from "../model/todoist.calendar.model";
 
 export function parseRequest(request: CalendarRequest): CalendarInput {
@@ -85,7 +85,11 @@ function mapSingleTodoistElement(singleReq: TodoistEvent): ExistingEvent {
 
 function parseDateTimeOrDateWithDefaultTime(datetime: string, date: string, defaultTime?: string) {
     if (datetime) {
-        return LocalDateTime.parse(datetime);
+        try {
+            return LocalDateTime.parse(datetime, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        } catch (exc) {
+            return LocalDateTime.parse(datetime);
+        }
     }
 
     const localDate = LocalDate.parse(date);
