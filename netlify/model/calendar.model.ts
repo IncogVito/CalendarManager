@@ -22,7 +22,7 @@ export interface CalendarInput {
 }
 
 export interface ExistingEvent {
-    eventId: number;
+    eventId: number | string;
     startingDateTime: LocalDateTime;
     endingDateTime: LocalDateTime;
     location: string;
@@ -52,7 +52,7 @@ export interface GeneralConstraints {
 }
 
 export interface UpdatedEvent {
-    eventId: number;
+    eventId: number | string;
     newStartingTime: LocalDateTime;
     newEndingTime: LocalDateTime;
 }

@@ -10,6 +10,7 @@ import {
     GeneralConstraints
 } from "../model/calendar.model";
 import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {TodoistEvent} from "../model/todoist.calendar.model";
 
 export function parseRequest(request: CalendarRequest): CalendarInput {
     return {
@@ -42,15 +43,48 @@ function parseDayPreferencesConfig(dayPreferencesConfig: DayPreferencesConfigReq
     };
 }
 
-function parseCurrentCalendar(currentEventsReqs: CurrentCalendarElementRequest[]): ExistingEvent[] {
+function parseCurrentCalendar(currentEventsReqs: CurrentCalendarElementRequest[] | TodoistEvent[]): ExistingEvent[] {
     return currentEventsReqs.map(singleReq => {
-        return {
-            eventId: singleReq.eventId,
-            startingDateTime: LocalDateTime.parse(singleReq.startingDateTime),
-            endingDateTime: LocalDateTime.parse(singleReq.endingDateTime),
-            location: singleReq.location,
-            changeable: singleReq.changeable,
-            availableAlongside: singleReq.availableAlongside
+        if ('id' in singleReq) {
+            return mapSingleTodoistElement(singleReq);
+        } else {
+            return mapSingleCalendarElement(singleReq);
         }
     })
+}
+
+function mapSingleCalendarElement(singleReq: CurrentCalendarElementRequest): ExistingEvent {
+    return {
+        eventId: singleReq.eventId,
+        startingDateTime: LocalDateTime.parse(singleReq.startingDateTime),
+        endingDateTime: LocalDateTime.parse(singleReq.endingDateTime),
+        location: singleReq.location,
+        changeable: singleReq.changeable,
+        availableAlongside: singleReq.availableAlongside
+    }
+}
+
+function mapSingleTodoistElement(singleReq: TodoistEvent): ExistingEvent {
+    const startingTime = parseDateTimeOrDateWithDefaultTime(singleReq.due.datetime, singleReq.due.date, '00:00:00');
+    const durationTime = singleReq.duration?.amount;
+    const endingTime = durationTime ? startingTime.plusMinutes(durationTime) : startingTime.plusMinutes(30);
+
+    return {
+        eventId: singleReq.id,
+        startingDateTime: startingTime,
+        endingDateTime: endingTime,
+        location: null,
+        changeable: false,
+        availableAlongside: false
+    }
+}
+
+function parseDateTimeOrDateWithDefaultTime(datetime: string, date: string, defaultTime?: string) {
+    if (datetime) {
+        return LocalDateTime.parse(datetime);
+    }
+
+    const localDate = LocalDate.parse(date);
+    const localTime = LocalTime.parse(defaultTime);
+    return LocalDateTime.of(localDate, localTime);
 }

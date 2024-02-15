@@ -1,5 +1,7 @@
+import {TodoistEvent} from "./todoist.calendar.model";
+
 export interface CalendarRequest {
-    currentCalendar: CurrentCalendarElementRequest[],
+    currentCalendar: CurrentCalendarElementRequest[] | TodoistEvent[],
     newCalendarElements: NewCalendarElementRequest[],
     dayPreferencesConfig: DayPreferencesConfigRequest,
     generalConstraints: GeneralConstraintsRequest
