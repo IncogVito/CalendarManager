@@ -1,31 +1,31 @@
 export interface TodoistEvent {
     id: string
-    assigner_id: any
-    assignee_id: any
-    project_id: string
-    section_id: any
-    parent_id: any
+    assignerId?: any
+    assigneeId?: any
+    projectId?: string
+    sectionId?: any
+    parentId?: any
     order: number
     content: string
     description: string
-    is_completed: boolean
+    isCompleted: boolean
     labels: string[]
     priority: number
-    comment_count: number
-    creator_id: string
-    created_at: string
-    due: Due
+    commentCount: number
+    creatorId: string
+    createdAt: string
+    due?: Due
     url: string
-    duration: Duration
+    duration?: Duration
 }
 
 export interface Due {
     date: string
-    timezone: string
+    timezone?: string
     string: string
-    lang: string
-    is_recurring: boolean
-    datetime: string
+    lang?: string
+    isRecurring: boolean
+    datetime?: string
 }
 
 export interface Duration {

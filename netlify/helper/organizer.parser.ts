@@ -43,7 +43,11 @@ function parseDayPreferencesConfig(dayPreferencesConfig: DayPreferencesConfigReq
     };
 }
 
-function parseCurrentCalendar(currentEventsReqs: CurrentCalendarElementRequest[] | TodoistEvent[]): ExistingEvent[] {
+export function parseCurrentCalendar(currentEventsReqs: CurrentCalendarElementRequest[] | TodoistEvent[]): ExistingEvent[] {
+    if (!currentEventsReqs) {
+        return [];
+    }
+
     return currentEventsReqs.map(singleReq => {
         if ('id' in singleReq) {
             return mapSingleTodoistElement(singleReq);

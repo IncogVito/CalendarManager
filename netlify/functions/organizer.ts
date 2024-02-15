@@ -158,9 +158,6 @@ export const handler = async (event: any, context: any) => {
         };
     }
 
-    const value = process.env.TODOIST_API_KEY;
-    console.log("TODOIST API KEY: " + value);
-
     if (!event.body) {
         throw new Error('Request body is missing.');
     }
