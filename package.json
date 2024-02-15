@@ -5,6 +5,7 @@
   "dependencies": {
     "@doist/todoist-api-typescript": "^3.0.2",
     "@js-joda/core": "^5.6.1",
+    "@js-joda/timezone": "^2.18.2",
     "@types/lodash": "^4.14.202",
     "langchain": "^0.0.159",
     "lodash": "^4.17.21",

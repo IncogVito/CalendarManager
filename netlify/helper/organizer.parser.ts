@@ -1,16 +1,13 @@
 import {
     CalendarRequest,
     CurrentCalendarElementRequest,
-    DayPreferencesConfigRequest, GeneralConstraintsRequest
+    DayPreferencesConfigRequest,
+    GeneralConstraintsRequest
 } from "../model/calendar-request.model";
-import {
-    CalendarInput,
-    ExistingEvent,
-    DayPreferencesConfig,
-    GeneralConstraints
-} from "../model/calendar.model";
-import {DateTimeFormatter, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {CalendarInput, DayPreferencesConfig, ExistingEvent, GeneralConstraints} from "../model/calendar.model";
+import {LocalDate, LocalDateTime, LocalTime, ZonedDateTime, ZoneId} from "@js-joda/core";
 import {TodoistEvent} from "../model/todoist.calendar.model";
+import '@js-joda/timezone'
 
 export function parseRequest(request: CalendarRequest): CalendarInput {
     return {
@@ -69,7 +66,7 @@ function mapSingleCalendarElement(singleReq: CurrentCalendarElementRequest): Exi
 }
 
 function mapSingleTodoistElement(singleReq: TodoistEvent): ExistingEvent {
-    const startingTime = parseDateTimeOrDateWithDefaultTime(singleReq.due.datetime, singleReq.due.date, '00:00:00');
+    const startingTime = parseDateTimeOrDateWithDefaultTime(singleReq.due.datetime, singleReq.due.date, '00:00:00', singleReq.due.timezone);
     const durationTime = singleReq.duration?.amount;
     const endingTime = durationTime ? startingTime.plusMinutes(durationTime) : startingTime.plusMinutes(30);
 
@@ -83,13 +80,15 @@ function mapSingleTodoistElement(singleReq: TodoistEvent): ExistingEvent {
     }
 }
 
-function parseDateTimeOrDateWithDefaultTime(datetime: string, date: string, defaultTime?: string) {
+function parseDateTimeOrDateWithDefaultTime(datetime: string, date: string, defaultTime: string = "00:00:00", timezone?: string): LocalDateTime {
     if (datetime) {
-        try {
-            return LocalDateTime.parse(datetime, DateTimeFormatter.ISO_ZONED_DATE_TIME);
-        } catch (exc) {
-            return LocalDateTime.parse(datetime);
+        if (timezone) {
+            const zonedDateTime = ZonedDateTime.parse(datetime);
+            const zone = ZoneId.of(timezone);
+            const convertedTime = zonedDateTime.withZoneSameInstant(zone);
+            return convertedTime.toLocalDateTime();
         }
+        return LocalDateTime.parse(datetime);
     }
 
     const localDate = LocalDate.parse(date);
