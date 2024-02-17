@@ -27,10 +27,7 @@ export const handler = async (event: any, context: any) => {
         console.error("Invalid JSON: " + event.body);
         return {
             statusCode: 400,
-            body: JSON.stringify({
-                "error": "Couldn't parse json. Error: " + e,
-                "invalidJson": event.body
-            }),
+            body: `{"error": "Couldn't parse json. Error: " ${e}, "invalidJson": ${event.body}`,
             headers: {'Content-Type': 'application/json'},
         };
     }
