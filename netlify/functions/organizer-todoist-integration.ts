@@ -19,7 +19,19 @@ export const handler = async (event: any, context: any) => {
     }
 
     const api = new TodoistApi(process.env.TODOIST_API_KEY)
-    const requestBody: CalendarRequest = JSON.parse(event.body);
+
+    let requestBody: CalendarRequest;
+    try {
+        requestBody = JSON.parse(event.body);
+    } catch (e) {
+        console.error("Invalid JSON: " + event.body);
+        return {
+            statusCode: 400,
+            body: "Couldn't parse json. Error: " + e,
+            headers: {'Content-Type': 'application/json'},
+        };
+    }
+
     const parsedInput = parseRequest(requestBody);
 
     const todoistFilter = createDueFilterBetweenDates(
