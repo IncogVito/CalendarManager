@@ -29,3 +29,12 @@ test("Should parse datetime zoned with respect to zone", () => {
     expect(localDateTime.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)).toEqual("2024-02-15T15:30:00");
 
 });
+
+test("JSON TEST", () => {
+
+    const text = `{   "currentCalendar": [],   "newCalendarElements": [     {       "name": "Nauka Hiszpańskiego",       "index": 1,       "durationTime": 45,       "location": "Mieszkanie Lwowska 2"     },     {       "name": "AI Planner",       "index": 2,       "durationTime": 75,       "location": "MAC Cafe"     }   ],     "generalConstraints": {     "minStartDate": "2024-02-17",     "maxEndDate": "2024-02-24",     "breakBetweenElements": 10,     "preferencesStartTime": "17:00:00",     "preferencesEndTime": "21:00:00",     "changingAllowed": "true"  } }`;
+    const requestBody = JSON.parse(text);
+
+    expect(requestBody).toBeDefined()
+
+});

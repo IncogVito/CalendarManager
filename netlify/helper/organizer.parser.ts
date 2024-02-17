@@ -1,10 +1,17 @@
 import {
+    BundledPlan,
     CalendarRequest,
     CurrentCalendarElementRequest,
     DayPreferencesConfigRequest,
     GeneralConstraintsRequest
 } from "../model/calendar-request.model";
-import {CalendarInput, DayPreferencesConfig, ExistingEvent, GeneralConstraints} from "../model/calendar.model";
+import {
+    CalendarInput,
+    DayPreferencesConfig,
+    ExistingEvent,
+    GeneralConstraints,
+    NewCalendarElement
+} from "../model/calendar.model";
 import {LocalDate, LocalDateTime, LocalTime, ZonedDateTime, ZoneId} from "@js-joda/core";
 import {TodoistEvent} from "../model/todoist.calendar.model";
 import '@js-joda/timezone'
@@ -17,8 +24,26 @@ export function parseRequest(request: CalendarRequest): CalendarInput {
         newCalendarElements: request.newCalendarElements
     }
 }
+export function createNewCalendarElements(bundledPlan: BundledPlan): NewCalendarElement[] {
+    const { name, timeOnProject, singleSessionTime } = bundledPlan;
+    const sessionsCount = Math.ceil(timeOnProject / singleSessionTime);
+    const sessions: NewCalendarElement[] = [];
+    for (let i = 0; i < sessionsCount; i++) {
+        const sessionName = `${name} - Session ${i + 1} / ${sessionsCount}`;
+        const sessionDuration = Math.min(singleSessionTime, timeOnProject - (i * singleSessionTime));
+        const newSession: NewCalendarElement = {
+            name: sessionName,
+            index: i + 1,
+            durationTime: sessionDuration,
+            location: ""
+        };
+        sessions.push(newSession);
+    }
 
-function parseGeneralConstraints(generalConstraints: GeneralConstraintsRequest): GeneralConstraints {
+    return sessions;
+}
+
+export function parseGeneralConstraints(generalConstraints: GeneralConstraintsRequest): GeneralConstraints {
     return {
         breakBetweenElements: generalConstraints.breakBetweenElements,
         changingAllowed: generalConstraints.changingAllowed,

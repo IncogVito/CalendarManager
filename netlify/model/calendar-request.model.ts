@@ -1,10 +1,25 @@
 import {TodoistEvent} from "./todoist.calendar.model";
+import {DayPreferencesConfig, ExistingEvent, GeneralConstraints, NewCalendarElement} from "./calendar.model";
 
 export interface CalendarRequest {
     currentCalendar: CurrentCalendarElementRequest[] | TodoistEvent[],
     newCalendarElements: NewCalendarElementRequest[],
     dayPreferencesConfig: DayPreferencesConfigRequest,
     generalConstraints: GeneralConstraintsRequest
+}
+
+export interface CalendarRequestBundled {
+    bundledPlan: BundledPlan,
+    dayPreferencesConfig: DayPreferencesConfigRequest,
+    generalConstraints: GeneralConstraintsRequest
+}
+
+
+export interface CalendarInputBundled {
+    currentCalendar: ExistingEvent[],
+    newCalendarElements: NewCalendarElement[],
+    dayPreferencesConfig: DayPreferencesConfig,
+    generalConstraints: GeneralConstraints
 }
 
 export interface CurrentCalendarElementRequest {
@@ -22,6 +37,13 @@ export interface NewCalendarElementRequest {
     durationTime: number;
     location: string;
 }
+
+export interface BundledPlan {
+    name: string
+    timeOnProject: number
+    singleSessionTime: number
+}
+
 
 export interface DayPreferencesConfigRequest {
     startTime: string;
