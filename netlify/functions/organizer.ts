@@ -1,9 +1,11 @@
 import {
+    CreatedEvent,
+    DayPreferencesConfig,
     ExistingEvent,
-    DayPreferencesConfig, UpdatedEvent,
     GeneralConstraints,
     NewCalendarElement,
-    CreatedEvent, TimeSlot
+    TimeSlot,
+    UpdatedEvent
 } from "../model/calendar.model";
 import {PlannedDay, PlanningResult} from "../model/calendar-algorithm.model";
 import {findAvailableTimeSlots, groupEventsByDays} from "../helper/organizer.helper";
@@ -29,7 +31,8 @@ export function organizeCalendar(
         generalConstraints,
         {
             success: false,
-            plannedDays: []
+            plannedDays: [],
+            unavailableDays: []
         }
     );
 
@@ -47,14 +50,22 @@ function planDaysSequentially(plannedDaysLeft: PlannedDay[],
                               generalConstraints: GeneralConstraints,
                               planningResultSoFar: PlanningResult
 ): PlanningResult {
+    // Checking if there's no more elements to placed, its finished
     if (isEmpty(calendarElementsLeftToBeInserted)) {
-        return {success: true, plannedDays: planningResultSoFar.plannedDays, score: planningResultSoFar.score};
+        return {
+            success: true,
+            plannedDays: planningResultSoFar.plannedDays,
+            score: planningResultSoFar.score,
+            unavailableDays: []
+        };
     }
+    // Checking if no days left to put more calendar elements into
     if (isEmpty(plannedDaysLeft)) {
-        return {success: false};
+        return {success: false, unavailableDays: planningResultSoFar.unavailableDays};
     }
+
     const currentDay = first(plannedDaysLeft);
-    console.log(`Current day: ${currentDay.date.format(DateTimeFormatter.ISO_DATE)}`)
+    // console.log(`Current day: ${currentDay.date.format(DateTimeFormatter.ISO_DATE)}`)
 
     const nextPlannedDays = drop(plannedDaysLeft, 1);
 
@@ -62,19 +73,21 @@ function planDaysSequentially(plannedDaysLeft: PlannedDay[],
     const restEvents = drop(calendarElementsLeftToBeInserted, 1);
 
     const updatedPlannedDay: PlannedDay | undefined = placeWithinEmptySlots(currentDay, eventToBePlaced, generalConstraints);
-    console.log("Event placed?: " + !!updatedPlannedDay);
+    // console.log("Event placed?: " + !!updatedPlannedDay);
 
+    // If not place any element on the current day, go to next day
     if (!updatedPlannedDay) {
-        return planDaysSequentially(nextPlannedDays, calendarElementsLeftToBeInserted, 'place', generalConstraints, planningResultSoFar);
+        const updatedPlanningResult = addUnavailableDay(planningResultSoFar, currentDay.date);
+        return planDaysSequentially(nextPlannedDays, calendarElementsLeftToBeInserted, 'place', generalConstraints, updatedPlanningResult);
     }
-
     const planningResult: PlanningResult = {
         success: false,
-        plannedDays: [...planningResultSoFar.plannedDays, updatedPlannedDay]
+        plannedDays: combinePlannedDays(planningResultSoFar.plannedDays, updatedPlannedDay),
+        unavailableDays: []
     }
     const innerResult = planDaysSequentially(nextPlannedDays, restEvents, 'place', generalConstraints, planningResult);
     if (!innerResult.success) {
-        console.log('Inner fail. Trying same day.')
+        // console.log('Inner fail. Trying same day.')
         const sameDayPlannedDays = [updatedPlannedDay, ...nextPlannedDays];
         return planDaysSequentially(sameDayPlannedDays, restEvents, 'place', generalConstraints, planningResult);
     }
@@ -106,6 +119,22 @@ function placeWithinEmptySlots(currentDay: PlannedDay,
     return {...currentDay, plannedNewElements: [...currentDay.plannedNewElements, createdEvent]}
 }
 
+function addUnavailableDay(planningResult: PlanningResult, date: LocalDate) {
+    const unavailableDays = planningResult.unavailableDays;
+    if (!unavailableDays.includes(date)) {
+        unavailableDays.push(date);
+    }
+    return {...planningResult, unavailableDays: unavailableDays}
+}
+
+function combinePlannedDays(plannedDays: PlannedDay[], updatedPlannedDay: PlannedDay) {
+    const index = plannedDays.findIndex(singleDay => singleDay.date === updatedPlannedDay.date);
+
+    if (index >= 0) {
+        return [...plannedDays.slice(0, index), updatedPlannedDay, ...plannedDays.slice(index + 1)];
+    }
+    return [...plannedDays, updatedPlannedDay];
+}
 
 function findAvailableSlotForElement(
     newElement: NewCalendarElement,

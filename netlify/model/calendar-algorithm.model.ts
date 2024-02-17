@@ -15,4 +15,5 @@ export class PlanningResult {
     success: boolean;
     plannedDays?: PlannedDay[];
     score?: number;
+    unavailableDays: LocalDate[];
 }

@@ -7,6 +7,7 @@ import {
 import {findAvailableTimeSlots, groupEventsByDays} from "../../helper/organizer.helper";
 import {handler, organizeCalendar} from "../organizer";
 import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {createNewCalendarElements} from "../../helper/organizer.parser";
 
 test('Should correctly grouped days', () => {
     const calendarElements: ExistingEvent[] = [
@@ -170,6 +171,38 @@ test('Should find available one slot when day occupied from the beginning', () =
     expect(availableTimeSlots[0].end).toEqual(LocalDateTime.parse("2024-01-21T21:00:00"));
 });
 
+test('Should placed events with bundled items', () => {
+    const calendarElements: ExistingEvent[] = [
+        {
+            eventId: 1,
+            startingDateTime: LocalDateTime.parse("2024-01-21T08:00:00"),
+            endingDateTime: LocalDateTime.parse("2024-01-21T09:00:00"),
+            location: 'Location1',
+            changeable: true,
+            availableAlongside: false,
+        }
+    ];
+
+    const newCalendarElements: NewCalendarElement[] = createNewCalendarElements({
+        name: "Project name",
+        singleSessionTime: 60,
+        timeOnProject: 1020
+    });
+
+    const generalConstraints: GeneralConstraints = {
+        minStartDate: LocalDate.parse('2024-01-21'),
+        maxEndDate: LocalDate.parse('2024-01-30'),
+        breakBetweenElements: 10,
+        changingAllowed: true,
+        preferencesStartTime: LocalTime.parse("17:00:00"),
+        preferencesEndTime: LocalTime.parse("20:00:00"),
+    };
+
+    const result = organizeCalendar(calendarElements, newCalendarElements, generalConstraints);
+    expect(result.success).toBeTruthy();
+    expect(result.createdEvents.length).toEqual(17)
+});
+
 test('Should find available one slot when day occupied until the end', () => {
     const calendarElements: ExistingEvent[] = [
         {
@@ -222,11 +255,6 @@ test('Should find some slots of new calendar', () => {
             location: 'Conference Room B',
         }
     ];
-
-    const dayPreferencesConfig: DayPreferencesConfig = {
-        startTime: LocalTime.parse('08:00:00'),
-        endTime: LocalTime.parse('21:00:00'),
-    };
 
     const generalConstraints: GeneralConstraints = {
         minStartDate: LocalDate.parse('2024-01-21'),
@@ -504,15 +532,6 @@ test('Should place two events over two days', () => {
 
     const result = organizeCalendar(currentCalendar, newCalendarElements, generalConstraints);
     expect(result.success).toBeTruthy();
-
-    // expect(result.newEventsToBeAdded.length).toEqual(2);
-    //
-    // let lastDate = null;
-    // for (const singleAddedItem of result.newEventsToBeAdded) {
-    //     // const newEventStartingTime = singleAddedItem.startingDateTime.toISODate();
-    //     // expect(lastDate).not.toEqual(newEventStartingTime)
-    //     // lastDate = singleAddedItem.startingDateTime.toISODate();
-    // }
 });
 
 
