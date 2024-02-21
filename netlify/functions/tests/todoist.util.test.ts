@@ -1,6 +1,7 @@
 import {DateTimeFormatter, LocalDate, LocalDateTime, ZonedDateTime, ZoneId} from "@js-joda/core";
-import {createDueFilterBetweenDates} from "../../helper/todoist.util";
+import {createDueFilterBetweenDates, filterObject} from "../../helper/todoist.util";
 import '@js-joda/timezone'
+import {TodoistEvent} from "../../model/todoist.calendar.model";
 
 
 test('Should correctly transform into url', () => {
@@ -38,3 +39,43 @@ test("JSON TEST", () => {
     expect(requestBody).toBeDefined()
 
 });
+
+
+test("Should filter object", () => {
+
+    const todoistEvent: TodoistEvent = {
+        assigneeId: "1",
+        assignerId: "undefined",
+        commentCount: 0,
+        content: "1",
+        createdAt: "1",
+        creatorId: "1",
+        description: "1",
+        duration: undefined,
+        id: "",
+        isCompleted: false,
+        labels: [],
+        order: 0,
+        parentId: undefined,
+        priority: 0,
+        projectId: "",
+        sectionId: undefined,
+        url: "",
+        due: {
+            date: "string",
+            timezone: "string",
+            string: "string",
+            lang: "string",
+            isRecurring: true,
+            datetime: "string"
+        }
+
+    }
+    const filteredElem = filterObject(todoistEvent, ['order', 'due']);
+
+    expect(filteredElem.due.date).toBeDefined()
+    expect(filteredElem.order).toBeDefined()
+    expect(filteredElem.description).toBeUndefined()
+    expect(filteredElem.creatorId).toBeUndefined()
+});
+

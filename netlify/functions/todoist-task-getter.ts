@@ -1,9 +1,8 @@
-
 import {DateTimeFormatter, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
 import {drop, first, isEmpty} from "lodash";
 import {TodoistEvent} from "../model/todoist.calendar.model";
 import {TodoistApi} from "@doist/todoist-api-typescript";
-import {createDueFilterBetweenDates} from "../helper/todoist.util";
+import {createDueFilterBetweenDates, filterObject} from "../helper/todoist.util";
 
 export const handler = async (event: any, context: any) => {
     if (event.httpMethod !== 'GET') {
@@ -35,7 +34,7 @@ export const handler = async (event: any, context: any) => {
     return {
         statusCode: 200,
         body: JSON.stringify({
-            tasks: tasks
+            tasks: tasks.map(singleElem => filterObject(singleElem, ["content", "due", "duration"]))
         }),
         headers: {'Content-Type': 'application/json'},
     };
