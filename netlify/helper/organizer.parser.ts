@@ -97,6 +97,7 @@ function mapSingleTodoistElement(singleReq: TodoistEvent): ExistingEvent {
 
     return {
         eventId: singleReq.id,
+        content: singleReq.content,
         startingDateTime: startingTime,
         endingDateTime: endingTime,
         location: null,

@@ -1,8 +1,9 @@
-import {DateTimeFormatter, LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
-import {drop, first, isEmpty} from "lodash";
+import {LocalDate} from "@js-joda/core";
 import {TodoistEvent} from "../model/todoist.calendar.model";
 import {TodoistApi} from "@doist/todoist-api-typescript";
-import {createDueFilterBetweenDates, filterObject} from "../helper/todoist.util";
+import {createDueFilterBetweenDates} from "../helper/todoist.util";
+import {parseCurrentCalendar} from "../helper/organizer.parser";
+import {ExistingEvent} from "../model/calendar.model";
 
 export const handler = async (event: any, context: any) => {
     if (event.httpMethod !== 'GET') {
@@ -13,7 +14,6 @@ export const handler = async (event: any, context: any) => {
         };
     }
 
-
     const {startDate, endDate} = event.queryStringParameters;
     if (!startDate || !endDate) {
         return {
@@ -23,18 +23,18 @@ export const handler = async (event: any, context: any) => {
         };
     }
 
-
     const parsedStartDate = LocalDate.parse(startDate);
     const parsedEndDate = LocalDate.parse(endDate);
 
     const api = new TodoistApi(process.env.TODOIST_API_KEY)
     const todoistFilter = createDueFilterBetweenDates(parsedStartDate, parsedEndDate);
     const tasks: TodoistEvent[] = await api.getTasks({filter: todoistFilter});
+    const existingElements: ExistingEvent[] = parseCurrentCalendar(tasks);
 
     return {
         statusCode: 200,
         body: JSON.stringify({
-            tasks: tasks.map(singleElem => filterObject(singleElem, ["content", "due", "duration"]))
+            tasks: existingElements
         }),
         headers: {'Content-Type': 'application/json'},
     };

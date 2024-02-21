@@ -23,6 +23,7 @@ export interface CalendarInput {
 
 export interface ExistingEvent {
     eventId: number | string;
+    content?: string;
     startingDateTime: LocalDateTime;
     endingDateTime: LocalDateTime;
     location: string;
