@@ -1,7 +1,7 @@
 import {LocalDate} from "@js-joda/core";
 import {TodoistEvent} from "../model/todoist.calendar.model";
 import {TodoistApi} from "@doist/todoist-api-typescript";
-import {createDueFilterBetweenDates} from "../helper/todoist.util";
+import {convertExistingEventsToSimplifiedString, createDueFilterBetweenDates} from "../helper/todoist.util";
 import {parseCurrentCalendar} from "../helper/organizer.parser";
 import {ExistingEvent} from "../model/calendar.model";
 
@@ -32,7 +32,11 @@ export const handler = async (event: any, context: any) => {
     const existingElements: ExistingEvent[] = parseCurrentCalendar(tasks);
 
     if (simplifiedResponse) {
-
+        return {
+            statusCode: 200,
+            body: convertExistingEventsToSimplifiedString(existingElements),
+            headers: {'Content-Type': 'text/plain'},
+        };
     }
 
     return {
