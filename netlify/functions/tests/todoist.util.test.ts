@@ -1,7 +1,12 @@
 import {DateTimeFormatter, LocalDate, LocalDateTime, ZonedDateTime, ZoneId} from "@js-joda/core";
-import {createDueFilterBetweenDates, filterObject} from "../../helper/todoist.util";
+import {
+    convertExistingEventsToSimplifiedString,
+    createDueFilterBetweenDates,
+    filterObject
+} from "../../helper/todoist.util";
 import '@js-joda/timezone'
 import {TodoistEvent} from "../../model/todoist.calendar.model";
+import {ExistingEvent} from "../../model/calendar.model";
 
 
 test('Should correctly transform into url', () => {
@@ -77,5 +82,36 @@ test("Should filter object", () => {
     expect(filteredElem.order).toBeDefined()
     expect(filteredElem.description).toBeUndefined()
     expect(filteredElem.creatorId).toBeUndefined()
+});
+
+
+
+test("Should convert existing events into simplified string", () => {
+
+    const events: ExistingEvent[] = [
+        {
+            eventId: 1,
+            content: 'Breakfast',
+            startingDateTime: LocalDateTime.parse('2024-02-24T08:00:00'),
+            endingDateTime: LocalDateTime.parse('2024-02-24T08:30:00'),
+            location: '',
+            changeable: true,
+            availableAlongside: true
+        },
+        {
+            eventId: 2,
+            content: 'Breakfast 2',
+            startingDateTime: LocalDateTime.parse('2024-02-25T08:00:00'),
+            endingDateTime: LocalDateTime.parse('2024-02-25T08:30:00'),
+            location: '',
+            changeable: true,
+            availableAlongside: true
+        }
+        ];
+    const simplifiedResponse = convertExistingEventsToSimplifiedString(events);
+
+    expect(simplifiedResponse).toEqual(
+        "2024-02-24\n08:00-08:30\nBreakfast\nEventId: 1\n\n2024-02-25\n08:00-08:30\nBreakfast 2\nEventId: 2\n\n"
+    )
 });
 

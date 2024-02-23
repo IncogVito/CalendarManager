@@ -14,7 +14,7 @@ export const handler = async (event: any, context: any) => {
         };
     }
 
-    const {startDate, endDate} = event.queryStringParameters;
+    const {startDate, endDate, simplifiedResponse} = event.queryStringParameters;
     if (!startDate || !endDate) {
         return {
             statusCode: 400,
@@ -30,6 +30,10 @@ export const handler = async (event: any, context: any) => {
     const todoistFilter = createDueFilterBetweenDates(parsedStartDate, parsedEndDate);
     const tasks: TodoistEvent[] = await api.getTasks({filter: todoistFilter});
     const existingElements: ExistingEvent[] = parseCurrentCalendar(tasks);
+
+    if (simplifiedResponse) {
+
+    }
 
     return {
         statusCode: 200,
