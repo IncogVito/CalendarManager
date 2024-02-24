@@ -111,7 +111,7 @@ test("Should convert existing events into simplified string", () => {
     const simplifiedResponse = convertExistingEventsToSimplifiedString(events);
 
     expect(simplifiedResponse).toEqual(
-        "2024-02-24\n08:00-08:30\nBreakfast\nEventId: 1\n\n2024-02-25\n08:00-08:30\nBreakfast 2\nEventId: 2\n\n"
+        "2024-02-24\n08:00-08:30 (30 mins)\nBreakfast\nEventId: 1\n\n2024-02-25\n08:00-08:30 (30 mins)\nBreakfast 2\nEventId: 2\n\n"
     )
 });
 

@@ -1,4 +1,4 @@
-import {DateTimeFormatter, LocalDate} from "@js-joda/core";
+import {DateTimeFormatter, Duration, LocalDate, Period} from "@js-joda/core";
 import {ExistingEvent} from "../model/calendar.model";
 
 export function createDueFilterBetweenDates(dateFrom: LocalDate, dateTo: LocalDate) {
@@ -17,7 +17,9 @@ export function filterObject<T>(obj: T, allowedFields: (keyof T)[]): Partial<T> 
 
 
 function formatEventIntoSimplifiedString(event: ExistingEvent): string {
-    let formattedEvent = `${event.startingDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}-${event.endingDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}\n`;
+    const duration: Duration = Duration.between(event.startingDateTime, event.endingDateTime);
+
+    let formattedEvent = `${event.startingDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))}-${event.endingDateTime.format(DateTimeFormatter.ofPattern("HH:mm"))} (${duration.toMinutes()} mins)\n`;
     if (event.content) {
         formattedEvent += `${event.content}\n`;
     }
