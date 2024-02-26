@@ -50,7 +50,8 @@ export function parseGeneralConstraints(generalConstraints: GeneralConstraintsRe
         maxEndDate: LocalDate.parse(generalConstraints.maxEndDate),
         minStartDate: LocalDate.parse(generalConstraints.minStartDate),
         preferencesStartTime: LocalTime.parse(generalConstraints.preferencesStartTime),
-        preferencesEndTime: LocalTime.parse(generalConstraints.preferencesEndTime)
+        preferencesEndTime: LocalTime.parse(generalConstraints.preferencesEndTime),
+        slotOffsetMinutes: 10
     };
 }
 

@@ -1,6 +1,7 @@
 import {ExistingEvent, DayPreferencesConfig, TimeSlot} from "../model/calendar.model";
 import {PlannedDay} from "../model/calendar-algorithm.model";
-import {LocalDate, LocalDateTime} from "@js-joda/core";
+import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {PlanSlot} from "../model/calendar-v2.model";
 
 export function groupEventsByDays(
     calendarElements: ExistingEvent[],
@@ -80,4 +81,25 @@ export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesCon
         timeSlots.push(TimeSlot.create(lastEndingTime, LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)));
     }
     return timeSlots;
+}
+
+
+/**
+ * Funkcja umieszcza punkty zdarzeń z planSlot w odpowiednich miejscach w tablicy eventPoints
+ *
+ * TODO - optimize this function
+ *
+ * @param eventPoints
+ * @param planSlot
+ */
+export function placeEventPoints(eventPoints: LocalTime[], planSlot: PlanSlot) {
+    const updatedEventPoints: LocalTime[] = [...eventPoints];
+    updatedEventPoints.push(planSlot.to, planSlot.from);
+    return updatedEventPoints.sort((a, b) => a.compareTo(b));
+}
+
+export function removeCollidingSlots(planSlotsBySector: PlanSlot[][], collidingTimeSlot: PlanSlot) {
+    return planSlotsBySector.map(singleSector => singleSector.filter(singleSlot => {
+        return singleSlot.from.compareTo(collidingTimeSlot.to) >= 0 || singleSlot.to.compareTo(collidingTimeSlot.from) <= 0
+    }))
 }

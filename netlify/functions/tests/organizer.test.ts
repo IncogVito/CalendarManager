@@ -193,6 +193,7 @@ test('Should placed events with bundled items', () => {
         minStartDate: LocalDate.parse('2024-01-21'),
         maxEndDate: LocalDate.parse('2024-01-30'),
         breakBetweenElements: 10,
+        slotOffsetMinutes: 10,
         changingAllowed: true,
         preferencesStartTime: LocalTime.parse("17:00:00"),
         preferencesEndTime: LocalTime.parse("20:00:00"),
@@ -260,7 +261,7 @@ test('Should find some slots of new calendar', () => {
         minStartDate: LocalDate.parse('2024-01-21'),
         maxEndDate: LocalDate.parse('2024-01-21'),
         breakBetweenElements: 10,
-        changingAllowed: true,
+        slotOffsetMinutes: 10,changingAllowed: true,
         preferencesStartTime: LocalTime.parse("08:00:00"),
         preferencesEndTime: LocalTime.parse("17:00:00"),
     };
@@ -347,7 +348,7 @@ test('Should find some slots over multiple days', () => {
         minStartDate: LocalDate.parse('2024-01-21'),
         maxEndDate: LocalDate.parse('2024-01-25'),
         breakBetweenElements: 10,
-        changingAllowed: true,
+        slotOffsetMinutes: 10,changingAllowed: true,
         preferencesStartTime: LocalTime.parse("11:00:00"),
         preferencesEndTime: LocalTime.parse("17:00:00"),
     };
@@ -406,7 +407,7 @@ test('Should find slots for 2 new items of new calendar', () => {
         minStartDate: LocalDate.parse('2024-01-21'),
         maxEndDate: LocalDate.parse('2024-01-21'),
         breakBetweenElements: 10,
-        changingAllowed: true,
+        slotOffsetMinutes: 10,changingAllowed: true,
         preferencesStartTime: LocalTime.parse("08:00:00"),
         preferencesEndTime: LocalTime.parse("21:00:00"),
     };
@@ -476,7 +477,7 @@ test('Should not find any slots for 3 new items of new calendar', () => {
         minStartDate: LocalDate.parse('2024-01-21'),
         maxEndDate: LocalDate.parse('2024-01-23'),
         breakBetweenElements: 10,
-        changingAllowed: true,
+        slotOffsetMinutes: 10,changingAllowed: true,
         preferencesStartTime: LocalTime.parse("15:00:00"),
         preferencesEndTime: LocalTime.parse("21:00:00"),
     };
@@ -525,7 +526,7 @@ test('Should place two events over two days', () => {
         minStartDate: LocalDate.parse('2024-01-21'),
         maxEndDate: LocalDate.parse('2024-01-22'),
         breakBetweenElements: 10,
-        changingAllowed: true,
+        slotOffsetMinutes: 10,changingAllowed: true,
         preferencesStartTime: LocalTime.parse("08:00:00"),
         preferencesEndTime: LocalTime.parse("21:00:00"),
     };

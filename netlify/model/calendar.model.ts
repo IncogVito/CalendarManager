@@ -43,10 +43,15 @@ export interface DayPreferencesConfig {
     endTime: LocalTime;
 }
 
+export interface CalculateScoreConfig {
+    slotOffsetMinutes: number;
+}
+
 export interface GeneralConstraints {
     minStartDate: LocalDate;
     maxEndDate: LocalDate;
     breakBetweenElements: number;
+    slotOffsetMinutes: number;
     changingAllowed: boolean;
     preferencesStartTime: LocalTime;
     preferencesEndTime: LocalTime;

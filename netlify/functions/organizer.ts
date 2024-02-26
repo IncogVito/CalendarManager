@@ -163,21 +163,6 @@ function isSlotAvailable(slotStart: LocalDateTime, slotEnd: LocalDateTime, newEl
     return true;
 }
 
-const dayConfig: DayPreferencesConfig = {
-    startTime: LocalTime.parse("08:00:00"),
-    endTime: LocalTime.parse("17:00:00"),
-};
-
-const generalConstraints: GeneralConstraints = {
-    minStartDate: LocalDate.parse("2024-01-21"),
-    maxEndDate: LocalDate.parse("2024-01-21"),
-    breakBetweenElements: 15, // in minutes
-    changingAllowed: true,
-    preferencesStartTime: LocalTime.parse("08:00:00"),
-    preferencesEndTime: LocalTime.parse("17:00:00"),
-};
-
-
 export const handler = async (event: any, context: any) => {
     if (event.httpMethod !== 'POST') {
         return {
