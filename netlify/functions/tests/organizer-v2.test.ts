@@ -1,7 +1,13 @@
-import {DayPreferencesConfig, ExistingEvent} from "../../model/calendar.model";
-import {LocalDateTime, LocalTime} from "@js-joda/core";
-import {calculateScore, createPlanSlotsBySectors, placeItems} from "../organizer-v2";
-import {CountFitScore, PlanSlot} from "../../model/calendar-v2.model";
+import {DayPreferencesConfig, ExistingEvent, GeneralConstraints, NewCalendarElement} from "../../model/calendar.model";
+import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
+import {
+    calculateScore,
+    createDailyPlanScore,
+    createPlanSlotsBySectors,
+    organizeCalendar,
+    placeItems
+} from "../organizer-v2";
+import {ScoredPlan, DailyPlanScoreSummaryResult, PlanSlot} from "../../model/calendar-v2.model";
 
 test('Should test creating plan slots', () => {
 // given
@@ -85,6 +91,40 @@ test('Should test creating plan slots before, in the middle and after events', (
     expect(planSlots[16].to).toEqual(LocalTime.of(20, 0));
 });
 
+test('Should create no slots when its not available', () => {
+// given
+    const existingEvents: ExistingEvent[] = [{
+        startingDateTime: LocalDateTime.of(2010, 1, 1, 8, 0),
+        endingDateTime: LocalDateTime.of(2010, 1, 1, 9, 0),
+        location: "location",
+        changeable: true,
+        availableAlongside: true,
+        eventId: "1"
+    }, {
+        startingDateTime: LocalDateTime.of(2010, 1, 1, 10, 30),
+        endingDateTime: LocalDateTime.of(2010, 1, 1, 15, 0),
+        location: "location",
+        changeable: true,
+        availableAlongside: true,
+        eventId: "2"
+    }];
+
+    const slotOffsetMinutes = 5;
+    const slotDurationMinutes = 180;
+    const preferencesConfig: DayPreferencesConfig = {
+        startTime: LocalTime.of(6, 0),
+        endTime: LocalTime.of(17, 59)
+    }
+
+// when
+    const planSlotsBySectors = createPlanSlotsBySectors(existingEvents, slotOffsetMinutes, slotDurationMinutes, preferencesConfig);
+    const planSlots = planSlotsBySectors.flatMap(slot => slot);
+
+// then
+    expect(planSlotsBySectors.length).toBe(0);
+    expect(planSlots.length).toBe(0);
+});
+
 
 test('Should place items between existing events', () => {
     // given
@@ -113,7 +153,7 @@ test('Should place items between existing events', () => {
     }
 
     // when
-    const countFitScore: CountFitScore = placeItems(planSlotsBySectors, eventPoints, 2, 0, calculateScoreFn);
+    const countFitScore: ScoredPlan = placeItems(planSlotsBySectors, eventPoints, 2, 0, calculateScoreFn);
 
     // then
     expect(countFitScore).toBeDefined()
@@ -148,7 +188,7 @@ test('Should place items after events no more than 2 times duration time', () =>
     }
 
     // when
-    const countFitScore: CountFitScore = placeItems(planSlotsBySectors, eventPoints, 1, 0, calculateScoreFn);
+    const countFitScore: ScoredPlan = placeItems(planSlotsBySectors, eventPoints, 1, 0, calculateScoreFn);
 
     // then
     expect(countFitScore).toBeDefined()
@@ -192,12 +232,10 @@ test('Should place bigger number of elements', () => {
     }
 
     // when
-    const countFitScore: CountFitScore = null;
-    placeItems(manySlotsBySingleSector, eventPoints, 10, 0, calculateScoreFn);
+    const countFitScore: ScoredPlan = placeItems(manySlotsBySingleSector, eventPoints, 10, 0, calculateScoreFn);
 
     // then
-    console.log(counterExec);
-    expect(countFitScore).toBeDefined()
+    expect(countFitScore).not.toBeNull()
     expect(countFitScore.slots.length).toBe(10);
 });
 
@@ -223,8 +261,241 @@ test('Should mark next slot as unavailable', () => {
     }
 
     // when
-    const countFitScore: CountFitScore = placeItems(planSlotsBySectors, eventPoints, 2, 0, calculateScoreFn);
+    const countFitScore: ScoredPlan = placeItems(planSlotsBySectors, eventPoints, 2, 0, calculateScoreFn);
 
     // then
     expect(countFitScore).toBeNull();
 });
+
+test('Should create simple daily plan', () => {
+    const existingEvents: ExistingEvent[] = [{
+        startingDateTime: LocalDateTime.of(2010, 1, 1, 8, 0),
+        endingDateTime: LocalDateTime.of(2010, 1, 1, 9, 0),
+        location: "location",
+        changeable: true,
+        availableAlongside: true,
+        eventId: "1"
+    }, {
+        startingDateTime: LocalDateTime.of(2010, 1, 1, 12, 0),
+        endingDateTime: LocalDateTime.of(2010, 1, 1, 15, 0),
+        location: "location",
+        changeable: true,
+        availableAlongside: true,
+        eventId: "2"
+    }];
+
+    const calendarElement: NewCalendarElement = {
+        name: "new event",
+        index: 1,
+        durationTime: 60,
+        location: "location"
+    };
+    const constraints: GeneralConstraints = {
+        minStartDate: LocalDate.of(2010, 1, 1),
+        maxEndDate: LocalDate.of(2010, 1, 1),
+        breakBetweenElements: 10,
+        slotOffsetMinutes: 15,
+        changingAllowed: true,
+        preferencesStartTime: LocalTime.of(8, 0),
+        preferencesEndTime: LocalTime.of(20, 0)
+    }
+
+    // when
+    const dailyPlanResult = createDailyPlanScore(existingEvents, calendarElement, constraints, 3, LocalDate.of(2010, 1, 1));
+
+    // then
+    expect(dailyPlanResult).toBeDefined();
+    expect(dailyPlanResult.maxCountFit).toBe(3);
+    expect(dailyPlanResult.countFitToScore.get(1).slots.length).toBe(1);
+    expect(dailyPlanResult.countFitToScore.get(2).slots.length).toBe(2);
+    expect(dailyPlanResult.countFitToScore.get(3).slots.length).toBe(3);
+    expect(dailyPlanResult.countFitToScore.get(1).penaltyScore).toBeLessThan(dailyPlanResult.countFitToScore.get(2).penaltyScore);
+    expect(dailyPlanResult.countFitToScore.get(2).penaltyScore).toBeLessThan(dailyPlanResult.countFitToScore.get(3).penaltyScore);
+});
+
+test('Should create daily plan with no space available', () => {
+    const existingEvents: ExistingEvent[] = [{
+        startingDateTime: LocalDateTime.of(2010, 1, 1, 8, 0),
+        endingDateTime: LocalDateTime.of(2010, 1, 1, 9, 0),
+        location: "location",
+        changeable: true,
+        availableAlongside: true,
+        eventId: "1"
+    }, {
+        startingDateTime: LocalDateTime.of(2010, 1, 1, 10, 30),
+        endingDateTime: LocalDateTime.of(2010, 1, 1, 15, 0),
+        location: "location",
+        changeable: true,
+        availableAlongside: true,
+        eventId: "2"
+    }];
+
+    const calendarElement: NewCalendarElement = {
+        name: "new event",
+        index: 1,
+        durationTime: 180,
+        location: "location"
+    };
+    const constraints: GeneralConstraints = {
+        minStartDate: LocalDate.of(2010, 1, 1),
+        maxEndDate: LocalDate.of(2010, 1, 1),
+        breakBetweenElements: 10,
+        slotOffsetMinutes: 15,
+        changingAllowed: true,
+        preferencesStartTime: LocalTime.of(8, 0),
+        preferencesEndTime: LocalTime.of(13, 0)
+    }
+
+    // when
+    const dailyPlanResult = createDailyPlanScore(existingEvents, calendarElement, constraints, 6, LocalDate.of(2010, 1, 1));
+
+    // then
+    expect(dailyPlanResult).toBeDefined();
+    expect(dailyPlanResult.maxCountFit).toBe(0);
+});
+
+
+
+
+test("Should organize events evenly", () => {
+    const existingEvents: ExistingEvent[] = [
+        {
+            eventId: "1",
+            startingDateTime: LocalDateTime.of(2022, 1, 1, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 1, 9, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        },
+        {
+            eventId: "2",
+            startingDateTime: LocalDateTime.of(2022, 1, 2, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 2, 11, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        },
+        {
+            eventId: "2",
+            startingDateTime: LocalDateTime.of(2022, 1, 7, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 7, 11, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        }
+        ];
+
+    const generalConstraint: GeneralConstraints = {
+        minStartDate: LocalDate.of(2022, 1, 1),
+        maxEndDate: LocalDate.of(2022, 1, 12),
+        breakBetweenElements: 10,
+        slotOffsetMinutes: 15,
+        changingAllowed: true,
+        preferencesStartTime: LocalTime.of(6, 0),
+        preferencesEndTime: LocalTime.of(22, 0)
+    }
+
+    const newCalendarElements = [
+        {
+            name: "new event",
+            index: 1,
+            durationTime: 60,
+            location: "location"
+        },
+        {
+            name: "new event",
+            index: 2,
+            durationTime: 60,
+            location: "location"
+        },
+        {
+            name: "new event",
+            index: 3,
+            durationTime: 60,
+            location: "location"
+        },
+        {
+            name: "new event",
+            index: 3,
+            durationTime: 60,
+            location: "location"
+        },
+        {
+            name: "new event",
+            index: 5,
+            durationTime: 60,
+            location: "location"
+        }
+    ]
+    // when
+    const result = organizeCalendar(existingEvents, newCalendarElements, generalConstraint);
+
+    // then
+    expect(result).toBeDefined();
+})
+
+test("Should organize more events evenly", () => {
+    const existingEvents: ExistingEvent[] = [
+        {
+            eventId: "1",
+            startingDateTime: LocalDateTime.of(2022, 1, 1, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 1, 9, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        },
+        {
+            eventId: "2",
+            startingDateTime: LocalDateTime.of(2022, 1, 2, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 2, 11, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        },
+        {
+            eventId: "3",
+            startingDateTime: LocalDateTime.of(2022, 1, 6, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 6, 11, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        },
+        {
+            eventId: "4",
+            startingDateTime: LocalDateTime.of(2022, 1, 13, 8, 0),
+            endingDateTime: LocalDateTime.of(2022, 1, 13, 11, 0),
+            location: "location",
+            changeable: true,
+            availableAlongside: true
+        }
+    ];
+
+    const generalConstraint: GeneralConstraints = {
+        minStartDate: LocalDate.of(2022, 1, 1),
+        maxEndDate: LocalDate.of(2022, 1, 14),
+        breakBetweenElements: 10,
+        slotOffsetMinutes: 15,
+        changingAllowed: true,
+        preferencesStartTime: LocalTime.of(8, 0),
+        preferencesEndTime: LocalTime.of(17, 0)
+    }
+
+    const newElements = [];
+
+    for (let i = 0; i < 22; i++) {
+        newElements.push(    {
+            name: "new event",
+            index: i,
+            durationTime: 60,
+            location: "location"
+        })
+    }
+
+    // when
+    const result = organizeCalendar(existingEvents, newElements, generalConstraint);
+
+    // then
+    expect(result).toBeDefined();
+    expect(result.createdEvents.length).toBe(22);
+})
+

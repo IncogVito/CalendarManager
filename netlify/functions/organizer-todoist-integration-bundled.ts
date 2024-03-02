@@ -7,7 +7,7 @@ import {
 } from "../helper/organizer.parser";
 import {createDueFilterBetweenDates} from "../helper/todoist.util";
 import {TodoistEvent} from "../model/todoist.calendar.model";
-import {organizeCalendar} from "./organizer";
+import {organizeCalendar} from "./organizer-v2";
 
 export const handler = async (event: any, context: any) => {
     if (event.httpMethod !== 'POST') {

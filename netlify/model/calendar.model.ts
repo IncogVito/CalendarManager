@@ -1,6 +1,20 @@
 import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
 
 export class TimeSlot {
+    start: LocalTime;
+    end: LocalTime;
+
+    private constructor(start: LocalTime, end: LocalTime) {
+        this.start = start;
+        this.end = end;
+    }
+
+    static create(start: LocalTime, end: LocalTime): TimeSlot {
+        return new TimeSlot(start, end);
+    }
+}
+
+export class DateTimeSlot {
     start: LocalDateTime;
     end: LocalDateTime;
 
@@ -9,8 +23,8 @@ export class TimeSlot {
         this.end = end;
     }
 
-    static create(start: LocalDateTime, end: LocalDateTime): TimeSlot {
-        return new TimeSlot(start, end);
+    static create(start: LocalDateTime, end: LocalDateTime): DateTimeSlot {
+        return new DateTimeSlot(start, end);
     }
 }
 

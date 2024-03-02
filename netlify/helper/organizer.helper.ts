@@ -1,4 +1,4 @@
-import {ExistingEvent, DayPreferencesConfig, TimeSlot} from "../model/calendar.model";
+import {ExistingEvent, DayPreferencesConfig, DateTimeSlot, TimeSlot} from "../model/calendar.model";
 import {PlannedDay} from "../model/calendar-algorithm.model";
 import {LocalDate, LocalDateTime, LocalTime} from "@js-joda/core";
 import {PlanSlot} from "../model/calendar-v2.model";
@@ -34,53 +34,60 @@ export function groupEventsByDays(
     return groupedDays;
 }
 
-export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesConfig: DayPreferencesConfig): TimeSlot[] {
-    const prefStartTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime);
-    const prefEndTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime);
+export function findAvailableTimeSlots(plannedDay: PlannedDay, dayPreferencesConfig: DayPreferencesConfig): DateTimeSlot[] {
+    const prefStartTime = dayPreferencesConfig.startTime;
+    const prefEndTime = dayPreferencesConfig.endTime;
 
-    const mappedExistingEvents = plannedDay.currentElements.map(e => {
+    const mappedTimeEvents = [...plannedDay.currentElements, ...plannedDay.plannedNewElements].map(e => {
         return {
             element: undefined,
-            startingDateTime: e.startingDateTime,
-            endingDateTime: e.endingDateTime
+            startingDateTime: e.startingDateTime.toLocalTime(),
+            endingDateTime: e.endingDateTime.toLocalTime()
         }
     })
 
-    const orderedEvents = [...mappedExistingEvents, ...plannedDay.plannedNewElements]
+    const orderedEvents = [...mappedTimeEvents]
         .sort((a1, a2) =>
             a1.startingDateTime.compareTo(a2.startingDateTime)
         );
 
     if (orderedEvents.length === 0) {
-        return [TimeSlot.create(
+        return [DateTimeSlot.create(
             LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime),
             LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)
         )
         ]
     }
     const timeSlots: TimeSlot[] = [];
-    let lastEndingTime = LocalDateTime.of(plannedDay.date, dayPreferencesConfig.startTime);
+    let lastEndingTime = dayPreferencesConfig.startTime;
 
     for (const singleEvent of orderedEvents) {
-        if (lastEndingTime.compareTo(singleEvent.startingDateTime) < 0
-            && lastEndingTime.compareTo(prefStartTime) >= 0
-            && lastEndingTime.compareTo(prefEndTime) < 0
+
+        // if lastEndingTime is before the event and it's between the preferred start and end time
+        if (lastEndingTime.isBefore(singleEvent.startingDateTime)
+            && (!lastEndingTime.isBefore(prefStartTime))
+            && lastEndingTime.isBefore(prefEndTime)
         ) {
-            const minEnding = prefEndTime.compareTo(singleEvent.startingDateTime) < 0 ? prefEndTime : singleEvent.startingDateTime;
+            const minEnding = prefEndTime.isBefore(singleEvent.startingDateTime) ? prefEndTime : singleEvent.startingDateTime;
             timeSlots.push(TimeSlot.create(lastEndingTime, minEnding));
         }
 
-        if (lastEndingTime.compareTo(singleEvent.endingDateTime) < 0) {
+        if (lastEndingTime.isBefore(singleEvent.endingDateTime)) {
             lastEndingTime = singleEvent.endingDateTime;
         }
     }
 
-    if (lastEndingTime.compareTo(LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)) < 0
+    if (lastEndingTime.compareTo(dayPreferencesConfig.endTime) < 0
         && lastEndingTime.compareTo(prefStartTime) >= 0
     ) {
-        timeSlots.push(TimeSlot.create(lastEndingTime, LocalDateTime.of(plannedDay.date, dayPreferencesConfig.endTime)));
+        timeSlots.push(TimeSlot.create(lastEndingTime, dayPreferencesConfig.endTime));
     }
-    return timeSlots;
+    return timeSlots.map(
+        slot => DateTimeSlot.create(
+            LocalDateTime.of(plannedDay.date, slot.start),
+            LocalDateTime.of(plannedDay.date, slot.end)
+        )
+    );
 }
 
 
