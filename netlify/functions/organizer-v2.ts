@@ -119,6 +119,10 @@ function sequencePenaltyScore(sequence: [LocalDate, number][]): number {
 function convertResultsIntoCreatedEvents(newCalendarElements: NewCalendarElement[],
                                          result: DailyOccupancyResult,
                                          allDailyPlanSummaryResults: DailyPlanScoreSummaryResult[]): CreatedEvent[] {
+    if (!result) {
+        return [];
+    }
+
     const leftCalendarElements = [...newCalendarElements];
     const createdEvents: CreatedEvent[] = []
 
